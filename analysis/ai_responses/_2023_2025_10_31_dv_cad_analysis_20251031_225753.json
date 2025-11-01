@@ -1,0 +1,917 @@
+{
+  "file_name": "_2023_2025_10_31_dv_cad.xlsx",
+  "analysis_date": "2025-10-31T22:57:52.598081",
+  "total_rows": 108100,
+  "total_columns": 20,
+  "columns": {
+    "ReportNumberNew": {
+      "dtype": "object",
+      "non_null_count": 108089,
+      "sample_values": [
+        "23-000001",
+        "23-000002",
+        "23-000005",
+        "23-000013",
+        "23-000016",
+        "23-000018",
+        "23-000020",
+        "23-000025",
+        "23-000031",
+        "23-000032"
+      ],
+      "unique_values_count": 105789
+    },
+    "Incident": {
+      "dtype": "object",
+      "non_null_count": 108077,
+      "sample_values": [
+        "Medical Call",
+        "Fireworks Complaint",
+        "Suspicious Vehicle",
+        "Dispute",
+        "Noise Complaint",
+        "Suspicious Incident",
+        "Noise Complaint",
+        "Disturbance",
+        "Noise Complaint",
+        "Fight -Unarmed"
+      ],
+      "unique_values_count": 590
+    },
+    "How Reported": {
+      "dtype": "object",
+      "non_null_count": 108095,
+      "sample_values": [
+        "9-1-1",
+        "Phone",
+        "Radio",
+        "9-1-1",
+        "9-1-1",
+        "9-1-1",
+        "Phone",
+        "Phone",
+        "Phone",
+        "9-1-1"
+      ],
+      "unique_values_count": 75
+    },
+    "FullAddress2": {
+      "dtype": "object",
+      "non_null_count": 108100,
+      "sample_values": [
+        "446 Passaic Street, Hackensack, NJ, 07601",
+        "240 Prospect Avenue, Hackensack, NJ, 07601",
+        "Staib Park & , Hackensack, NJ, 07601",
+        "188 James Street, Hackensack, NJ, 07601",
+        "Lexington Avenue & , Hackensack, NJ, 07601",
+        "240 Anderson Street, Hackensack, NJ, 07601",
+        "435 Lookout Avenue West, Hackensack, NJ, 07601",
+        "231 Anderson Street, Hackensack, NJ, 07601",
+        "141 Lexington Avenue, Hackensack, NJ, 07601",
+        "141 Bonhomme Avenue, Hackensack, NJ, 07601"
+      ],
+      "unique_values_count": 10839
+    },
+    "PDZone": {
+      "dtype": "object",
+      "non_null_count": 67825,
+      "sample_values": [
+        "7",
+        "7",
+        "5",
+        "9",
+        "8",
+        "5",
+        "8",
+        "7",
+        "6",
+        "5"
+      ],
+      "unique_values_count": 6
+    },
+    "Grid": {
+      "dtype": "object",
+      "non_null_count": 68694,
+      "sample_values": [
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4",
+        "4a4"
+      ],
+      "unique_values_count": 31
+    },
+    "Time of Call": {
+      "dtype": "datetime64[ns]",
+      "non_null_count": 108100,
+      "sample_values": [
+        "2023-01-01 00:11:19",
+        "2023-01-01 00:16:45",
+        "2023-01-01 00:31:49",
+        "2023-01-01 01:22:40",
+        "2023-01-01 01:27:23",
+        "2023-01-01 01:32:47",
+        "2023-01-01 01:35:23",
+        "2023-01-01 01:53:16",
+        "2023-01-01 02:08:30",
+        "2023-01-01 02:10:31"
+      ],
+      "unique_values_count": 108014
+    },
+    "cYear": {
+      "dtype": "int64",
+      "non_null_count": 108100,
+      "sample_values": [
+        "2023",
+        "2023",
+        "2023",
+        "2023",
+        "2023",
+        "2023",
+        "2023",
+        "2023",
+        "2023",
+        "2023"
+      ],
+      "unique_values_count": 3
+    },
+    "cMonth": {
+      "dtype": "object",
+      "non_null_count": 108100,
+      "sample_values": [
+        "January",
+        "January",
+        "January",
+        "January",
+        "January",
+        "January",
+        "January",
+        "January",
+        "January",
+        "January"
+      ],
+      "unique_values_count": 12
+    },
+    "HourMinuetsCalc": {
+      "dtype": "object",
+      "non_null_count": 108100,
+      "sample_values": [
+        "00:11",
+        "00:16",
+        "00:31",
+        "01:22",
+        "01:27",
+        "01:32",
+        "01:35",
+        "01:53",
+        "02:08",
+        "02:10"
+      ],
+      "unique_values_count": 1440
+    },
+    "DayofWeek": {
+      "dtype": "object",
+      "non_null_count": 108100,
+      "sample_values": [
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday",
+        "Sunday"
+      ],
+      "unique_values_count": 7
+    },
+    "Time Dispatched": {
+      "dtype": "object",
+      "non_null_count": 108069,
+      "sample_values": [
+        "2023-01-01 00:12:43",
+        "2023-01-01 00:18:53",
+        "2023-01-01 00:32:05",
+        "2023-01-01 01:23:25",
+        "2023-01-01 01:30:11",
+        "2023-01-01 01:37:44",
+        "2023-01-01 01:42:05",
+        "2023-01-01 01:56:38",
+        "2023-01-01 02:27:35",
+        "2023-01-01 02:12:25"
+      ],
+      "unique_values_count": 108030
+    },
+    "Time Out": {
+      "dtype": "object",
+      "non_null_count": 108098,
+      "sample_values": [
+        "2023-01-01 00:12:44",
+        "2023-01-01 00:27:59",
+        "2023-01-01 00:32:18",
+        "2023-01-01 01:26:37",
+        "2023-01-01 01:31:53",
+        "2023-01-01 01:37:54",
+        "2023-01-01 01:45:37",
+        "2023-01-01 01:57:35",
+        "2023-01-01 02:27:37",
+        "2023-01-01 02:14:06"
+      ],
+      "unique_values_count": 108066
+    },
+    "Time In": {
+      "dtype": "object",
+      "non_null_count": 108096,
+      "sample_values": [
+        "2023-01-01 00:12:45",
+        "2023-01-01 00:31:02",
+        "2023-01-01 00:41:50",
+        "2023-01-01 01:36:40",
+        "2023-01-01 01:35:32",
+        "2023-01-01 01:41:47",
+        "2023-01-01 01:57:51",
+        "2023-01-01 02:01:34",
+        "2023-01-01 02:27:38",
+        "2023-01-01 02:21:16"
+      ],
+      "unique_values_count": 107958
+    },
+    "Time Spent": {
+      "dtype": "object",
+      "non_null_count": 108099,
+      "sample_values": [
+        "0:00:01",
+        "0:03:03",
+        "0:09:32",
+        "0:10:03",
+        "0:03:39",
+        "0:03:53",
+        "0:12:14",
+        "0:03:59",
+        "0:00:01",
+        "0:07:10"
+      ],
+      "unique_values_count": 8728
+    },
+    "Time Response": {
+      "dtype": "object",
+      "non_null_count": 108100,
+      "sample_values": [
+        "0:01:25",
+        "0:11:14",
+        "0:00:29",
+        "0:03:57",
+        "0:04:30",
+        "0:05:07",
+        "0:10:14",
+        "0:04:19",
+        "0:19:07",
+        "0:03:35"
+      ],
+      "unique_values_count": 4505
+    },
+    "Officer": {
+      "dtype": "object",
+      "non_null_count": 108078,
+      "sample_values": [
+        "P.O. Gregory Kiselow 108",
+        "P.O. Aaron Rios 337",
+        "P.O. Denisse Caero 367",
+        "P.O. Aaron Rios 337",
+        "P.O. Michael Scangarella 349",
+        "P.O. Denisse Caero 367",
+        "P.O. Denisse Caero 367",
+        "P.O. Aaron Rios 337",
+        "P.O. Benjamin Farhi 309",
+        "P.O. Christian Alvarez 364"
+      ],
+      "unique_values_count": 216
+    },
+    "Disposition": {
+      "dtype": "object",
+      "non_null_count": 107434,
+      "sample_values": [
+        "TOT - See Notes",
+        "Unfounded",
+        "Dispersed",
+        "Checked OK",
+        "Advised",
+        "G.O.A.",
+        "Advised",
+        "Advised",
+        "Advised",
+        "Checked OK"
+      ],
+      "unique_values_count": 37
+    },
+    "Response Type": {
+      "dtype": "object",
+      "non_null_count": 51940,
+      "sample_values": [
+        "Routine",
+        "Urgent",
+        "Urgent",
+        "Routine",
+        "Urgent",
+        "Routine",
+        "Urgent",
+        "Routine",
+        "Emergency",
+        "Urgent"
+      ],
+      "unique_values_count": 28
+    },
+    "CADNotes": {
+      "dtype": "object",
+      "non_null_count": 80088,
+      "sample_values": [
+        "Micom Notified... Stomach Pain - kiselow_g - 1/1/2023 12:12:54 AM\nFTO Paperwork - mcnally_a - 7/17/2023 5:26:09 AM\n? - ? - ?",
+        "Front of building - kiselow_g - 1/1/2023 12:17:07 AM\n? - ? - ?\n? - ? - ?",
+        "Loud Music coming from the neighboring residence of 141 Lexington  - kiselow_g - 1/1/2023 1:29:14 AM\n? - ? - ?\n? - ? - ?",
+        "Caller reported that a group of 5 individuals area walking in the area of 240  - kiselow_g - 1/1/2023 1:34:42 AM\nAnderson Street entering homes.  Caller could not give any description of  - kiselow_g - 1/1/2023 1:34:42 AM\nany party within the group - kiselow_g - 1/1/2023 1:34:42 AM",
+        "Loud Music - kiselow_g - 1/1/2023 1:35:43 AM\n451 West Lookout advised - thomas_l - 1/1/2023 1:57:29 AM\n? - ? - ?",
+        "Group speaking loudly and throwing bottles.  - kiselow_g - 1/1/2023 1:54:08 AM\n? - ? - ?\n? - ? - ?",
+        "In the area of 141 Lexington.  Complainant resides at 141 - baY_f - 1/1/2023 2:11:06 AM\n2nd call - thomas_l - 1/1/2023 2:20:09 AM\n? - ? - ?",
+        "Caller reported a group fighting in the street - kiselow_g - 1/1/2023 2:11:15 AM\n? - ? - ?\n? - ? - ?",
+        "Complainant resides at 180.  Check the area.  Possibly 186 -190 Washington - kiselow_g - 1/1/2023 2:18:01 AM\n192 Washington - thomas_l - 1/1/2023 2:28:19 AM\n? - ? - ?",
+        "Loud party located in rear of location - kiselow_g - 1/1/2023 2:21:58 AM\n? - ? - ?\n? - ? - ?"
+      ],
+      "unique_values_count": 78442
+    }
+  },
+  "data_samples": {
+    "ReportNumberNew": [
+      "24-095510",
+      "23-052015",
+      "24-024635",
+      "25-041254",
+      "23-044878"
+    ],
+    "Incident": [
+      "Shoplifting - 2C:20-11",
+      "Applicant ABC License",
+      "Medical Call",
+      "Generated In Error",
+      "Repossessed Motor Vehicle"
+    ],
+    "How Reported": [
+      "Phone",
+      "Walk-In",
+      "9-1-1",
+      "9-1-1",
+      "Phone"
+    ],
+    "FullAddress2": [
+      "630 Main Street, Hackensack, NJ, 07601",
+      "225 State Street, Hackensack, NJ, 07601",
+      "197 Euclid Avenue, Hackensack, NJ, 07601",
+      "Kaplan Avenue & South Summit Avenue, Hackensack, NJ, 07601",
+      "240 Prospect Avenue, Hackensack, NJ, 07601"
+    ],
+    "PDZone": [
+      "9",
+      "NULL",
+      "9",
+      "6",
+      "NULL"
+    ],
+    "Grid": [
+      "I1",
+      "4a4",
+      "I2",
+      "F2",
+      "NULL"
+    ],
+    "Time of Call": [
+      "2024-11-08 16:31:57",
+      "2023-06-13 14:59:21",
+      "2024-03-19 13:56:26",
+      "2025-05-19 13:07:38",
+      "2023-05-20 18:56:08"
+    ],
+    "cYear": [
+      "2024",
+      "2023",
+      "2024",
+      "2025",
+      "2023"
+    ],
+    "cMonth": [
+      "November",
+      "June",
+      "March",
+      "May",
+      "May"
+    ],
+    "HourMinuetsCalc": [
+      "16:31",
+      "14:59",
+      "13:56",
+      "13:07",
+      "18:56"
+    ],
+    "DayofWeek": [
+      "Friday",
+      "Tuesday",
+      "Tuesday",
+      "Monday",
+      "Saturday"
+    ],
+    "Time Dispatched": [
+      "2024-11-08 17:08:24",
+      "2023-06-13 14:59:24",
+      "2024-03-19 13:59:25",
+      "2025-05-19 13:07:38",
+      "2023-05-20 18:56:08"
+    ],
+    "Time Out": [
+      "2024-11-08 17:11:02",
+      "2023-06-13 14:59:25",
+      "2024-03-19 13:59:27",
+      "2025-05-19 13:07:38",
+      "2023-05-20 18:56:08"
+    ],
+    "Time In": [
+      "2024-11-08 17:25:03",
+      "2023-06-13 15:01:35",
+      "2024-03-19 13:59:33",
+      "2025-05-19 13:07:38",
+      "2023-05-20 18:56:08"
+    ],
+    "Time Spent": [
+      "0:14:01",
+      "0:02:10",
+      "0:00:06",
+      "0:00:00",
+      "0:00:00"
+    ],
+    "Time Response": [
+      "0:39:05",
+      "0:00:04",
+      "0:03:01",
+      "0:00:00",
+      "0:00:00"
+    ],
+    "Officer": [
+      "P.O. Andres Lopez 375",
+      "CLK Maddalena Candela",
+      "C.O. John Gervasi 521",
+      "P.O. Pedro Dominguez 166",
+      "P.O. Frank Cavallo 253"
+    ],
+    "Disposition": [
+      "See Report",
+      "Record Only",
+      "TOT - See Notes",
+      "See Report",
+      "See Report"
+    ],
+    "Response Type": [
+      "NULL",
+      "Routine",
+      "NULL",
+      "Routine",
+      "Routine"
+    ],
+    "CADNotes": [
+      "81 took game action figures. See Sheikh in Loss Prevention. 81s are still outside the store/  - scarpa_f - 11/8/2024 4:33:13 PM\n? - ? - ?\n? - ? - ?",
+      "Application for New AB for Noches De Colombia - candela_m - 6/13/2023 3:01:19 PM\n? - ? - ?\n? - ? - ?",
+      "Rep a 76 year old male not feeling well.TOT MICCOM - Gervasi_J - 3/19/2024 1:59:19 PM\n? - ? - ?\n? - ? - ?",
+      "2 car mvc honda crv white vs ford blue no injuries\nno airbags - Mena_A - 5/19/2025 12:47:03 PM\n? - ? - ?\n? - ? - ?",
+      "vehicle was repossessed, - cavallo_f - 5/20/2023 7:16:58 PM\n? - ? - ?\n? - ? - ?"
+    ]
+  },
+  "data_quality": {
+    "ReportNumberNew": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 11,
+        "empty_string_count": 0,
+        "total_missing": 11,
+        "missing_percentage": 0.01
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Incident": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 23,
+        "empty_string_count": 0,
+        "total_missing": 23,
+        "missing_percentage": 0.02
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "How Reported": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 5,
+        "empty_string_count": 0,
+        "total_missing": 5,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "FullAddress2": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "PDZone": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 40275,
+        "empty_string_count": 0,
+        "total_missing": 40275,
+        "missing_percentage": 37.26
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Grid": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 39406,
+        "empty_string_count": 0,
+        "total_missing": 39406,
+        "missing_percentage": 36.45
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Time of Call": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "cYear": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "outlier_count": 0,
+        "outlier_percentage": 0.0,
+        "bounds": {
+          "lower": 2020.0,
+          "upper": 2028.0
+        }
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "cMonth": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "HourMinuetsCalc": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "DayofWeek": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Time Dispatched": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 31,
+        "empty_string_count": 0,
+        "total_missing": 31,
+        "missing_percentage": 0.03
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Time Out": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 2,
+        "empty_string_count": 0,
+        "total_missing": 2,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Time In": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 4,
+        "empty_string_count": 0,
+        "total_missing": 4,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Time Spent": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 1,
+        "empty_string_count": 0,
+        "total_missing": 1,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Time Response": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 0,
+        "empty_string_count": 0,
+        "total_missing": 0,
+        "missing_percentage": 0.0
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Officer": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 22,
+        "empty_string_count": 0,
+        "total_missing": 22,
+        "missing_percentage": 0.02
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Disposition": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 666,
+        "empty_string_count": 0,
+        "total_missing": 666,
+        "missing_percentage": 0.62
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "Response Type": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 56160,
+        "empty_string_count": 0,
+        "total_missing": 56160,
+        "missing_percentage": 51.95
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    },
+    "CADNotes": {
+      "missing_values": {
+        "total_values": 108100,
+        "null_count": 28012,
+        "empty_string_count": 0,
+        "total_missing": 28012,
+        "missing_percentage": 25.91
+      },
+      "format_issues": {
+        "issues_found": [],
+        "format_consistency": "consistent"
+      },
+      "outliers": {
+        "has_outliers": false,
+        "reason": "non_numeric_column"
+      },
+      "suspicious_values": {
+        "suspicious_values": [],
+        "requires_review": false
+      }
+    }
+  }
+}

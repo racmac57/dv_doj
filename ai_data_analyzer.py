@@ -9,6 +9,18 @@ import json
 from datetime import datetime
 from pathlib import Path
 import logging
+import numpy as np
+
+# Custom JSON encoder for numpy/pandas types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        return super(NumpyEncoder, self).default(obj)
 
 # Setup logging
 logging.basicConfig(
@@ -82,9 +94,9 @@ class DataAnalyzer:
         for col in df.columns:
             columns_info[col] = {
                 'dtype': str(df[col].dtype),
-                'non_null_count': df[col].notna().sum(),
-                'sample_values': df[col].dropna().head(10).tolist(),
-                'unique_values_count': df[col].nunique()
+                'non_null_count': int(df[col].notna().sum()),
+                'sample_values': [str(v) if pd.notna(v) else 'NULL' for v in df[col].dropna().head(10)],
+                'unique_values_count': int(df[col].nunique())
             }
         
         return columns_info
@@ -110,7 +122,7 @@ class DataAnalyzer:
         
         # Extract samples for each column
         for col in df.columns:
-            samples[col] = random_rows[col].fillna('NULL').tolist()
+            samples[col] = [str(v) if pd.notna(v) else 'NULL' for v in random_rows[col]]
         
         return samples
     
@@ -231,7 +243,7 @@ Total Rows: {analysis['total_rows']}
 Total Columns: {analysis['total_columns']}
 
 Columns and Sample Data:
-{json.dumps(analysis['columns'], indent=2)}
+{json.dumps(analysis['columns'], indent=2, cls=NumpyEncoder)}
 
 Please provide a detailed description of each column including its purpose and data type.
 """,
@@ -241,7 +253,7 @@ Please provide a detailed description of each column including its purpose and d
                 'prompt': f"""
 Review these additional random samples from the dataset to confirm data formats:
 
-{json.dumps(analysis['data_samples'], indent=2)}
+{json.dumps(analysis['data_samples'], indent=2, cls=NumpyEncoder)}
 
 Are there any inconsistencies or patterns in the data structure?
 """,
@@ -251,7 +263,7 @@ Are there any inconsistencies or patterns in the data structure?
                 'prompt': f"""
 Conduct a comprehensive data quality assessment:
 
-{json.dumps(analysis['data_quality'], indent=2)}
+{json.dumps(analysis['data_quality'], indent=2, cls=NumpyEncoder)}
 
 Provide recommendations for data cleaning and ETL pipeline development.
 """,
@@ -269,12 +281,12 @@ Provide recommendations for data cleaning and ETL pipeline development.
         # Save full analysis
         analysis_file = self.results_dir / f"{base_name}_analysis_{timestamp}.json"
         with open(analysis_file, 'w', encoding='utf-8') as f:
-            json.dump(analysis, f, indent=2, default=str)
+            json.dump(analysis, f, indent=2, cls=NumpyEncoder)
         
         # Save prompts
         prompts_file = self.results_dir / f"{base_name}_prompts_{timestamp}.json"
         with open(prompts_file, 'w', encoding='utf-8') as f:
-            json.dump(prompts, f, indent=2, default=str)
+            json.dump(prompts, f, indent=2, cls=NumpyEncoder)
         
         logging.info(f"Analysis saved to {analysis_file}")
         logging.info(f"Prompts saved to {prompts_file}")
