@@ -88,7 +88,51 @@ The generated prompts can be used with AI tools (like ChatGPT, Claude, etc.) to:
 3. Get recommendations for ETL pipeline development
 4. Generate demographic insights
 
-### Step 4: Build ETL Pipelines
+### Step 4: Fix and Transform DV Data
+
+The project includes specialized scripts for cleaning and transforming the DV state form data:
+
+#### Fix Column Headers and Boolean Values
+
+```bash
+python fix_dv_headers.py
+```
+
+This script:
+- Renames `Case #` to `CaseNumber`
+- Removes `g` prefix from municipality columns
+- Converts columns to PascalCase
+- Converts 'X' and 'O' values to boolean `True`
+
+#### Transform and Consolidate Data
+
+```bash
+python transform_dv_data.py
+```
+
+This script performs advanced transformations:
+- Fixes `OffenseDate` column (date-only type)
+- Ensures proper data types (Time as timedelta, TotalTime as duration)
+- Consolidates VictimRace columns (6 → 1 with codes: W, A, B, P, I, U)
+- Consolidates VictimEthnicity columns (2 → 1 with codes: H, NH)
+- Consolidates DayOfWeek columns (7 → 1 with codes: Sun, Mon, Tue, etc.)
+- Renames sex columns (VictimSexF → FemaleVictim, VictimSexM → MaleVictim)
+
+Results saved to `processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx`
+
+#### Map DV Data to RMS Locations
+
+```bash
+python map_dv_to_rms_locations.py
+```
+
+This script:
+- Maps Case Numbers from DV file to RMS file
+- Retrieves location data (FullAddress) from RMS
+- Creates merged dataset ready for ArcGIS Pro mapping
+- Generates ArcGIS Pro Python script using arcpy
+
+### Step 5: Build ETL Pipelines
 
 Use the base ETL framework to create custom transformation scripts:
 
@@ -116,7 +160,7 @@ etl.run(
 )
 ```
 
-### Step 5: Generate Demographic Insights
+### Step 6: Generate Demographic Insights
 
 For demographic analysis:
 
@@ -239,13 +283,30 @@ All operations are logged to:
    - Copy the repository URL
    - Add it as remote: `git remote add origin https://github.com/YOUR_USERNAME/nj-cad-dv-analysis.git`
 
+## Data Transformation Scripts
+
+### DV Data Cleaning Scripts
+
+1. **`fix_dv_headers.py`**: Fixes column headers and converts boolean values
+2. **`transform_dv_data.py`**: Advanced transformations and column consolidation
+3. **`map_dv_to_rms_locations.py`**: Maps Case Numbers to RMS locations for GIS mapping
+4. **`verify_transformations.py`**: Verifies transformations were applied correctly
+
+### Utility Scripts
+
+- **`examine_dv_structure.py`**: Examines DV file structure
+- **`check_dv_columns.py`**: Checks for specific column patterns
+
 ## Next Steps
 
 1. Review AI analysis outputs in `analysis/ai_responses/`
-2. Use AI prompts to get detailed column descriptions and recommendations
-3. Create custom ETL scripts based on AI recommendations
-4. Build demographic dashboards and reports
-5. Conduct statistical analysis on patterns and trends
+2. Run data transformation scripts to clean and consolidate data
+3. Map DV data to RMS locations for GIS analysis
+4. Use AI prompts to get detailed column descriptions and recommendations
+5. Create custom ETL scripts based on AI recommendations
+6. Build demographic dashboards and reports
+7. Conduct statistical analysis on patterns and trends
+8. Create ArcGIS Pro maps with location data
 
 ## Notes
 

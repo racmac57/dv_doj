@@ -44,7 +44,13 @@ nj_cad_dv_analysis/
    - Configurable transformations
    - Automatic data cleaning
 
-3. **Git/GitHub Integration** (`git_automation.py`)
+3. **DV Data Transformation Scripts**
+   - **`fix_dv_headers.py`**: Fixes column headers, converts booleans
+   - **`transform_dv_data.py`**: Advanced transformations and consolidation
+   - **`map_dv_to_rms_locations.py`**: Maps Case Numbers to locations for GIS
+   - **`verify_transformations.py`**: Validates transformations
+
+4. **Git/GitHub Integration** (`git_automation.py`)
    - Automated repository management
    - Commit and push workflows
    - Tag and release creation
