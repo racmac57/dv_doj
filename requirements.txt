@@ -10,4 +10,7 @@ seaborn==0.13.0
 tabulate==0.9.0
 PyGithub==1.59.1
 python-dotenv==1.0.0
+calamine==0.1.0
+psutil==5.9.6
+tqdm==4.66.1
 

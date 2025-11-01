@@ -58,3 +58,12 @@ logs/*.log
 processed_data/*
 !processed_data/.gitkeep
 
+# Output directory and CSV files
+output/
+*.csv
+!output/.gitkeep
+
+# Export logs
+export_log.json
+conversion_summary.json
+
