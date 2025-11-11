@@ -19,6 +19,7 @@ dv_doj/
 │   ├── transform_dv_data.py
 │   ├── map_dv_to_rms_locations.py
 │   ├── verify_transformations.py
+│   ├── backfill_dv.py
 │   ├── base_etl.py
 │   ├── check_dv_columns.py
 │   ├── examine_dv_structure.py
@@ -57,22 +58,29 @@ dv_doj/
    - Configurable transformations
    - Automatic data cleaning
 
-3. **DV Data Transformation Scripts**
+3. **DV Backfill & Validation** (`etl_scripts/backfill_dv.py`)
+   - CSV-first DV data reconciliation with RMS/CAD exports
+   - Fills key fields (OffenseDate/Time/DayOfWeek) with RMS primary, CAD fallback
+   - Adds `CN_Flag`, `VA_Flag`, and cleans death indicators
+   - Emits `processed_data/dv_final.csv` plus `logs/validation_report.txt` & `logs/quality_metrics.json`
+
+4. **DV Data Transformation Scripts**
    - **`etl_scripts/fix_dv_headers.py`**: Fixes column headers, converts booleans
    - **`etl_scripts/transform_dv_data.py`**: Advanced transformations and consolidation
    - **`etl_scripts/map_dv_to_rms_locations.py`**: Maps Case Numbers to locations for GIS
    - **`etl_scripts/verify_transformations.py`**: Validates transformations
 
-4. **Git/GitHub Integration** (`etl_scripts/git_automation.py`)
+5. **Git/GitHub Integration** (`etl_scripts/git_automation.py`)
    - Automated repository management
    - Commit and push workflows
    - Tag and release creation
    - Remote repository setup
 
-5. **Toolchain & Automation**
+6. **Toolchain & Automation**
    - `pyproject.toml` pins dependencies and linting/type-check configuration
    - `Makefile` provides `setup`, `qa`, `test`, `fmt`, and pipeline shortcuts
    - `etl.py` exposes a Click-based CLI for export, profile, transform, map, and verify tasks
+   - `python -m etl_scripts.backfill_dv` reconciles DV outputs with RMS/CAD, flags anomalies, and logs validation metrics
    - GitHub Actions (`.github/workflows/ci.yml`) runs linting, typing, and tests on Windows for every push/PR
 
 ### ✅ Documentation
@@ -95,7 +103,18 @@ Copy your raw data files to:
 - Excel files → `raw_data/xlsx/`
 - CSV files → `raw_data/csv/`
 
-### 3️⃣ Run AI Analysis
+### 3️⃣ Backfill & Validate DV Outputs
+```bash
+python -m etl_scripts.backfill_dv \
+  --dv processed_data/_2023_2025_10_31_dv_fixed_transformed_transformed.csv \
+  --rms raw_data/xlsx/output/_2023_2025_10_31_dv_rms.csv \
+  --cad raw_data/xlsx/output/_2023_2025_10_31_dv_cad.csv \
+  --out processed_data/dv_final.csv
+```
+
+Validation artifacts are written to `logs/`.
+
+### 4️⃣ Run AI Analysis
 ```bash
 python etl.py profile --src output --out analysis/ai_responses
 ```
@@ -126,6 +145,15 @@ python etl.py profile --src output --out analysis/ai_responses
 
 # Check logs
 cat logs/analysis.log
+```
+
+### Testing & Benchmarks
+```bash
+# Edge-case regression tests
+pytest tests/test_backfill_functions_edge_cases.py -v
+
+# Integration + benchmark suite (uses pytest-benchmark if present)
+pytest tests/integration/test_suite.py -v
 ```
 
 ### Git Operations
@@ -169,11 +197,11 @@ This project helps you:
 2. **Build ETL Pipelines**
    - Framework handles common transformations
    - Configurable for different datasets
-   - Supports demographic analysis
+   - DV backfill merges RMS/CAD, emits quality metrics
 
 3. **Generate Insights**
    - Demographic distributions
-   - Data quality metrics
+   - Data quality metrics & validation logs
    - Recommendations for analysis
 
 4. **Maintain Version Control**

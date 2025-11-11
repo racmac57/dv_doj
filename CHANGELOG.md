@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.1] - 2025-11-11
 
+### Added
+- `etl_scripts/backfill_dv.py` CSV-first reconciliation script with RMS/CAD backfills, quality flags, and validation-report/metrics outputs.
+- Edge-case regression tests in `tests/test_backfill_functions_edge_cases.py` covering missing inputs, malformed officers, time parsing, and duplicate handling.
+- Integration/benchmark suite at `tests/integration/test_suite.py` that executes the backfill pipeline on synthetic data and records timing via `pytest-benchmark` (with graceful fallback).
+
 ### Changed
 - Updated DV ETL helpers (`transform_dv_data.py`, `map_dv_to_rms_locations.py`, `verify_transformations.py`, utility scripts) to prefer CSV inputs using the `pyarrow` engine, falling back to legacy Excel sources when needed.
 - Adjusted RMS mapping workflow to prioritize the headered CSV exported under `raw_data/xlsx/output/`, ensuring case-number joins succeed when Excel sheets are unavailable.
@@ -17,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Confirmed `python etl.py transform`, `map`, and `verify` run end-to-end against the CSV pipeline after installing the `rich` dependency.
 
 ### Documentation
+- Refreshed `README.md` and `PROJECT_SUMMARY.md` with the DV backfill workflow, validation artifacts, and updated testing guidance.
 - Refreshed `docs/handoff_next_steps.md` to capture the CSV-first workflow expectations and RMS source location guidance.
 
 ## [1.3.0] - 2025-11-11
