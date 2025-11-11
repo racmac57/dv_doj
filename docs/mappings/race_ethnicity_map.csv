@@ -1,0 +1,11 @@
+category,source,value,description
+race,VictimRace_W,W,White
+race,VictimRace_A,A,Asian
+race,VictimRace_B,B,Black or African American
+race,VictimRace_P,P,Native Hawaiian or Pacific Islander
+race,VictimRace_I,I,American Indian or Alaska Native
+race,VictimRace_U,U,Unknown or not reported
+ethnicity,VictimEthnic_H,H,Hispanic or Latino
+ethnicity,VictimEthnic_NH,NH,Non-Hispanic
+ethnicity,VictimEthnic_U,U,Unknown or not reported
+

@@ -6,7 +6,7 @@ This repository contains an end-to-end workflow for analyzing CAD/RMS and Domest
 
 ## Repository Layout
 
-```
+```text
 dv_doj/
 ├── raw_data/
 │   ├── xlsx/                         # Source Excel workbooks
@@ -39,39 +39,62 @@ dv_doj/
 ## Quick Start
 
 1. **Install dependencies**
+
    ```bash
-   pip install -r docs/archive/requirements.txt
+   make setup
    ```
-   Key libraries include `calamine` (fast Excel reader), `psutil`, and `tqdm`.
+
+   This creates `.venv`, installs the project in editable mode, and adds QA tooling (`ruff`, `mypy`, `pytest`).  
+   Prefer `pip install -e .` if `make` is unavailable.
 
 2. **Convert Excel workbooks to CSV (optional)**
+
    ```bash
-   cd etl_scripts
-   python export_excel_sheets_to_csv.py
-   cd ..
+   python etl.py export --src raw_data/xlsx --out output
    ```
-   CSV exports are written to `output/` and logged in `export_log.json`.
+
+   CSV exports are written to `output/` and logged in `output/conversion_summary.json`.
 
 3. **Profile the data with AI**
+
    ```bash
-   python etl_scripts/ai_data_analyzer.py
+   python etl.py profile --src output --out analysis/ai_responses
    ```
+
    The script inspects every Excel/CSV file in `raw_data/` and `output/`, producing detailed JSON reports in `analysis/ai_responses/`.
 
 4. **Build or run ETL pipelines**
-   ```python
-   from pathlib import Path
-   from etl_scripts.base_etl import BaseETL
 
-   etl = BaseETL()
-   etl.run(source_file=Path('output/your_file.csv'))
+   ```bash
+   python etl.py transform --src processed_data --out processed_data
    ```
-   Customize column mappings, type conversions, and demographic rollups as needed.
+
+   The CLI orchestrates the header fix, data transformation, mapping, and verification helpers.
 
 5. **Explore results**
    - Review AI outputs in `analysis/ai_responses/`
    - Inspect cleaned files in `processed_data/`
    - Use notebooks in `notebooks/` for ad hoc analysis
+
+## Tooling Overview
+
+- **Environment** — `pyproject.toml` pins runtime dependencies; `make setup` provisions a local `.venv`.
+- **CLI** — `python etl.py` exposes `export`, `profile`, `transform`, `map`, and `verify` workflows (implemented with Click).
+- **Quality Gates** — `make qa` runs `ruff`, `mypy`, and `pytest`; `make fmt` auto-formats imports and style issues.
+- **Tests** — Lightweight fixtures in `tests/fixtures/mini/` keep regressions in check (`make test`).
+- **CI** — `.github/workflows/ci.yml` executes the same lint/type/test pipeline on Windows runners for every push and PR.
+
+### CLI Commands
+
+Run the commands from the repository root using the project virtual environment (`.venv\Scripts\python` on Windows):
+
+| Command | Purpose | Example |
+| --- | --- | --- |
+| `export` | Convert Excel workbooks to CSV. | `python etl.py export --src raw_data/xlsx --out output` |
+| `profile` | Generate AI-driven profiling reports. | `python etl.py profile --src output --out analysis/ai_responses` |
+| `transform` | Apply DV-specific transformations. | `python etl.py transform --src processed_data --out processed_data` |
+| `map` | Join DV and RMS data for mapping. | `python etl.py map --src processed_data --out processed_data` |
+| `verify` | Emit a JSON verification report. | `python etl.py verify --src processed_data --out logs` |
 
 ## Data Snapshot
 
@@ -125,6 +148,7 @@ Converted CSV counterparts are stored in `output/`. All sensitive data should re
 ## Git & GitHub Workflow
 
 Manual workflow:
+
 ```bash
 git add .
 git commit -m "Describe your changes"
@@ -132,6 +156,7 @@ git push origin main
 ```
 
 Automation (optional):
+
 ```bash
 python etl_scripts/git_automation.py --status
 python etl_scripts/git_automation.py --commit-push "Your commit message"
@@ -147,6 +172,9 @@ The remote repository is hosted at `https://github.com/racmac57/dv_doj.git`. Mak
 - `docs/archive/QUICKSTART.md` – concise walkthrough for new users
 - `docs/archive/SETUP_GIT.md` – step-by-step instructions for configuring GitHub access
 - `docs/archive/TRANSFORMATION_SUMMARY.md` – detailed transformation notes
+- `docs/data_dictionary.md` – canonical field definitions, types, and examples
+- `docs/pii_policy.md` – expectations for handling sensitive information
+- `docs/mappings/` – CSV lookup tables referenced by the ETL pipeline
 
 The archived documents capture historical context, prior analysis, and setup guides.
 
@@ -157,5 +185,3 @@ The archived documents capture historical context, prior analysis, and setup gui
 3. Consult the documentation listed above for deeper dives.
 
 Happy analyzing!
-
-

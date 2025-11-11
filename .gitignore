@@ -52,7 +52,7 @@ logs/*.log
 *.log
 
 # Analysis outputs (can be large)
-# analysis/ai_responses/**/*.json
+analysis/ai_responses/**
 
 # Processed data
 processed_data/*
@@ -60,10 +60,22 @@ processed_data/*
 
 # Output directory and CSV files
 output/
-*.csv
 !output/.gitkeep
+*.csv
+!docs/mappings/*.csv
+!tests/fixtures/mini/*.csv
 
 # Export logs
 export_log.json
 conversion_summary.json
 
+.venv/
+.env
+*.env
+raw_data/**
+processed_data/**
+output/**
+logs/**
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/

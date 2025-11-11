@@ -1,0 +1,14 @@
+raw,normalized,boolean
+Y,Yes,True
+N,No,False
+YES,Yes,True
+NO,No,False
+T,True,True
+F,False,False
+TRUE,True,True
+FALSE,False,False
+1,Yes,True
+0,No,False
+X,True,True
+O,True,True
+

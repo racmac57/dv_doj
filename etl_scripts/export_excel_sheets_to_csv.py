@@ -14,6 +14,8 @@ import fnmatch
 import csv
 import logging
 import signal
+from pathlib import Path
+from types import SimpleNamespace
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -35,7 +37,6 @@ class ExportError(Exception):
 
 # Timeout Handler (Windows compatible)
 import threading
-import time
 
 def timeout_handler(timeout_seconds):
     def decorator(func):
@@ -118,7 +119,8 @@ def _parse_af_columns(spec: str):
         start, end = spec.split("-", 1)
         s = column_index_from_string(start)
         e = column_index_from_string(end)
-        if s > e: s, e = e, s
+        if s > e:
+            s, e = e, s
         cols = list(range(s, e + 1))
     else:
         parts = [p for p in spec.split(",") if p]
@@ -131,7 +133,7 @@ def _to_text(value, date_fmt="%Y-%m-%d", dt_fmt="%Y-%m-%d %H:%M:%S", t_fmt="%H:%
         return ""
     if isinstance(value, (int, float)):
         return value
-    # Handle pandas/calamine time-only values that may come as timedelta
+# Handle pandas time-only values that may come as timedelta
     try:
         import pandas as _pd
         if isinstance(value, getattr(_pd, 'Timedelta', ())) or isinstance(value, dtdelta):
@@ -183,7 +185,7 @@ def _get_used_range(data):
 
 
 def _iter_rows_pandas(df, visible_only, date_fmt, dt_fmt, t_fmt, af_columns, min_af_nonempty, af_gate_visible_only):
-    """Iterate over pandas DataFrame rows for calamine engine"""
+    """Iterate over pandas DataFrame rows for export"""
     af_cols = _parse_af_columns(af_columns)
     max_r, max_c = _get_used_range(df)
     if max_r == 0 or max_c == 0:
@@ -251,7 +253,7 @@ def process_excel_file(xlsx_path, out_dir, args, logger):
         file_size = os.path.getsize(xlsx_path)
         available_memory = psutil.virtual_memory().available / (1024 * 1024)  # MB
         
-        engine = "calamine" if args.engine == "auto" else args.engine
+        engine = "openpyxl" if args.engine == "auto" else args.engine
         chunksize = args.chunksize if args.chunksize else get_adaptive_chunksize(file_size, available_memory)
         
         logger.info(f"Processing: {os.path.basename(xlsx_path)}")
@@ -261,8 +263,8 @@ def process_excel_file(xlsx_path, out_dir, args, logger):
         if engine == "openpyxl":
             wb = load_workbook(xlsx_path, read_only=True, data_only=True)
             sheet_names = wb.sheetnames
-        else:  # calamine
-            excel_file = pd.ExcelFile(xlsx_path, engine='calamine')
+        else:
+            excel_file = pd.ExcelFile(xlsx_path, engine='openpyxl')
             sheet_names = excel_file.sheet_names
             wb = None
         
@@ -286,8 +288,8 @@ def process_excel_file(xlsx_path, out_dir, args, logger):
                     ws = wb[sheet_name]
                     max_r, max_c = _get_used_range(ws)
                     is_df = False
-                else:  # calamine
-                    df = pd.read_excel(xlsx_path, sheet_name=sheet_name, engine='calamine', keep_default_na=False)
+                else:
+                    df = pd.read_excel(xlsx_path, sheet_name=sheet_name, engine='openpyxl', keep_default_na=False)
                     setattr(df, "_include_headers", True)
                     max_r, max_c = _get_used_range(df)
                     is_df = True
@@ -309,11 +311,11 @@ def process_excel_file(xlsx_path, out_dir, args, logger):
                 def export_with_timeout():
                     if engine == "openpyxl":
                         # For openpyxl, we'd need to implement _iter_rows function or use calamine
-                        return _stream_write_csv(csv_path, _iter_rows_pandas(pd.read_excel(xlsx_path, sheet_name=sheet_name, engine='calamine', keep_default_na=False), 
+                        return _stream_write_csv(csv_path, _iter_rows_pandas(pd.read_excel(xlsx_path, sheet_name=sheet_name, engine='openpyxl', keep_default_na=False), 
                                                                               args.visible_only, args.date_format, args.datetime_format, args.time_format, 
                                                                               args.af_columns, args.min_af_nonempty, args.af_gate_visible_only), 
                                                  args.encoding, args.bom)
-                    else:  # calamine
+                    else:
                         return _stream_write_csv(csv_path, _iter_rows_pandas(df, args.visible_only, args.date_format, args.datetime_format, args.time_format, 
                                                                               args.af_columns, args.min_af_nonempty, args.af_gate_visible_only), 
                                                  args.encoding, args.bom)
@@ -352,9 +354,75 @@ def process_excel_file(xlsx_path, out_dir, args, logger):
     
     return results
 
-def main():
+def main(src=None, out=None):
+    if src is not None or out is not None:
+        source_dir = Path(src or "raw_data/xlsx")
+        output_dir = Path(out or "output")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        logger = logging.getLogger("export_excel_sheets_to_csv.library")
+        if not logger.handlers:
+            logger.setLevel(logging.INFO)
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+            logger.addHandler(handler)
+
+        args = SimpleNamespace(
+            engine="auto",
+            chunksize=None,
+            include=[],
+            exclude=[],
+            include_empty=False,
+            visible_only=False,
+            all_sheets=True,
+            date_format="%Y-%m-%d",
+            datetime_format="%Y-%m-%d %H:%M:%S",
+            time_format="%H:%M:%S",
+            af_columns="A,B,C",
+            min_af_nonempty=0,
+            af_gate_visible_only=False,
+            encoding="utf-8",
+            bom=True,
+            disable_af_gate=True,
+        )
+
+        files = []
+        for pattern in ("*.xlsx", "*.xls"):
+            files.extend(sorted(source_dir.glob(pattern)))
+        if not files:
+            logger.warning("No Excel files found for export in %s", source_dir)
+            return
+
+        summary = {
+            "start_time": datetime.now().isoformat(),
+            "files_processed": [],
+            "total_files": len(files),
+            "successful_conversions": 0,
+            "failed_conversions": 0,
+        }
+
+        for idx, file_path in enumerate(files, 1):
+            logger.info("Exporting [%s/%s] %s", idx, len(files), file_path.name)
+            result = process_excel_file(str(file_path), str(output_dir), args, logger)
+            summary["files_processed"].append(result)
+            if result["success"]:
+                summary["successful_conversions"] += 1
+            else:
+                summary["failed_conversions"] += 1
+
+        summary["end_time"] = datetime.now().isoformat()
+        summary["duration_seconds"] = (
+            datetime.fromisoformat(summary["end_time"])
+            - datetime.fromisoformat(summary["start_time"])
+        ).total_seconds()
+        summary_path = output_dir / "conversion_summary.json"
+        with open(summary_path, "w", encoding="utf-8") as fh:
+            json.dump(summary, fh, indent=2)
+        logger.info("Export summary written to %s", summary_path)
+        return
+
     ap = argparse.ArgumentParser(description="Export all Excel sheets to individual CSV files. Runs in current directory by default.")
-    
+
     # Changed: --xlsx is now optional
     ap.add_argument("--xlsx", help="Path to the source .xlsx file (if not provided, processes all Excel files in current directory)")
     ap.add_argument("--output-dir", default="output", help="Output directory for CSV files (default: 'output')")
@@ -377,32 +445,32 @@ def main():
                     help="If set, only visible cells among --af-columns count toward the threshold.")
     ap.add_argument("--disable-af-gate", action="store_true", default=True,
                     help="Disable A-F gate filtering (export all rows) - enabled by default")
-    ap.add_argument("--engine", default="auto", choices=["auto", "calamine", "openpyxl"], 
-                    help="Engine for reading Excel files (auto selects based on file size)")
-    ap.add_argument("--chunksize", type=int, default=None, 
+    ap.add_argument("--engine", default="auto", choices=["auto", "openpyxl"],
+                    help="Engine for reading Excel files (default: openpyxl)")
+    ap.add_argument("--chunksize", type=int, default=None,
                     help="Read file in chunks of this size for large files (auto-enabled for 50MB+ files)")
     ap.add_argument("--log-file", default="export_log.json", help="Log file path (default: export_log.json)")
-    
+
     args = ap.parse_args()
-    
+
     # Handle disable-af-gate option
     if args.disable_af_gate:
         args.min_af_nonempty = 0
-    
+
     # Setup logging - ensure output directory exists first
     current_dir = os.getcwd()
     log_file_path = os.path.join(current_dir, args.log_file)
-    
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger(__name__)
     handler = logging.FileHandler(log_file_path)
     handler.setFormatter(logging.Formatter('{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}'))
     logger.addHandler(handler)
-    
+
     logger.info("=" * 80)
     logger.info("Excel to CSV Converter - Starting")
     logger.info(f"Working directory: {current_dir}")
-    
+
     # Determine which files to process
     if args.xlsx:
         # Process single file
@@ -412,20 +480,20 @@ def main():
         xlsx_files = []
         for ext in ['*.xlsx', '*.xls']:
             xlsx_files.extend([os.path.abspath(f) for f in os.listdir(current_dir) if fnmatch.fnmatch(f.lower(), ext.lower())])
-        
+
         if not xlsx_files:
             logger.error("No Excel files found in current directory")
             print("No Excel files found in current directory")
             return
-        
+
         logger.info(f"Found {len(xlsx_files)} Excel file(s) to process")
         print(f"Found {len(xlsx_files)} Excel file(s) to process")
-    
+
     # Create output directory
     output_dir = os.path.join(current_dir, args.output_dir)
     os.makedirs(output_dir, exist_ok=True)
     logger.info(f"Output directory: {output_dir}")
-    
+
     # Process all files
     all_results = {
         "start_time": datetime.now().isoformat(),
@@ -434,35 +502,35 @@ def main():
         "successful_conversions": 0,
         "failed_conversions": 0
     }
-    
+
     for i, xlsx_path in enumerate(xlsx_files, 1):
         logger.info("")
         print(f"\n[{i}/{len(xlsx_files)}] Processing {os.path.basename(xlsx_path)}...")
-        
+
         result = process_excel_file(xlsx_path, output_dir, args, logger)
         all_results["files_processed"].append(result)
-        
+
         if result["success"]:
             all_results["successful_conversions"] += 1
         else:
             all_results["failed_conversions"] += 1
-    
+
     all_results["end_time"] = datetime.now().isoformat()
-    all_results["duration_seconds"] = (datetime.fromisoformat(all_results["end_time"]) - 
+    all_results["duration_seconds"] = (datetime.fromisoformat(all_results["end_time"]) -
                                        datetime.fromisoformat(all_results["start_time"])).total_seconds()
-    
+
     # Save summary
     summary_path = os.path.join(output_dir, "conversion_summary.json")
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(all_results, f, indent=2)
-    
+
     # Print final summary
     logger.info("")
     logger.info("=" * 80)
     logger.info(f"Conversion complete: {all_results['successful_conversions']} successful, {all_results['failed_conversions']} failed")
     logger.info(f"Total time: {all_results['duration_seconds']:.2f} seconds")
     logger.info(f"Summary saved to: {summary_path}")
-    
+
     print("\n" + "=" * 80)
     print("CONVERSION COMPLETE")
     print("=" * 80)

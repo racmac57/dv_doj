@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-11-11
+
+### Added
+- `pyproject.toml` with pinned runtime dependencies, Ruff/Mypy/Pytest config, and packaging metadata.
+- `Makefile` targets: `setup`, `qa`, `test`, `fmt`, `export`, `etl`, `profile`, `map`, `verify`, `report`.
+- `etl.py` Click CLI wrapping export, profile, transform, map, and verify workflows.
+- Pytest scaffolding in `tests/` with lightweight fixtures under `tests/fixtures/mini/`.
+- GitHub Actions workflow `.github/workflows/ci.yml` running Ruff, Mypy, and Pytest on Windows.
+- Documentation: `docs/data_dictionary.md`, `docs/pii_policy.md`, CSV lookup tables in `docs/mappings/`, and source asset README.
+
+### Changed
+- Consolidated Python utilities under `etl_scripts/` package with importable `main()` functions.
+- `export_excel_sheets_to_csv.py` now supports programmatic execution for the CLI while retaining CLI argument parsing.
+- `fix_dv_headers.py` and `transform_dv_data.py` load yes/no, race, and ethnicity mappings from CSV; boolean normalization respects configurable vocab.
+- `transform_dv_data.py` localises datetime parsing to `America/New_York` and accepts configurable input/output paths.
+- `map_dv_to_rms_locations.py` consumes join configuration from `docs/mappings/location_join_keys.csv`.
+- `verify_transformations.py` produces a JSON verification report with record counts and null rates under `logs/`.
+- `.gitignore` updated to keep virtual environments, caches, and large data directories outside version control while whitelisting docs/tests CSVs.
+- Large reference documents relocated to `docs/source/`.
+
+### Documentation
+- Updated `README.md` with Makefile workflow, CLI usage, QA pipeline, and documentation inventory.
+- Updated `PROJECT_SUMMARY.md` with toolchain overview, new docs, and refreshed command guidance.
+- Refreshed `NEXT_STEPS.md` references to archived documentation paths.
+
 ## [1.2.0] - 2025-11-01
 
 ### Added

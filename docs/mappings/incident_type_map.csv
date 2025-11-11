@@ -1,0 +1,11 @@
+raw,canonical,category
+threats,Threats,Verbal
+threat,Threats,Verbal
+assault,Assault,Physical
+simple assault,Assault,Physical
+aggravated assault,Aggravated Assault,Physical
+harassment,Harassment,Verbal
+domestic dispute,Domestic Dispute,General
+stalking,Stalking,General
+violation restraining order,Restraining Order Violation,Legal
+

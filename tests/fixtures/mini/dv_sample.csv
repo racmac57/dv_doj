@@ -1,0 +1,7 @@
+CaseNumber,IncidentDate,BetweenDate,ReportDate,VictimYN
+DV-1,2025-10-01,,2025-10-02,Y
+DV-2,,2025-10-05,2025-10-06,N
+DV-3,2025-10-07,,2025-10-08,Yes
+DV-4,2025-10-09,,2025-10-10,No
+DV-5,2025-10-11,,2025-10-12,y
+
