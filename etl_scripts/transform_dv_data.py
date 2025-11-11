@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 MAPPINGS_DIR = Path("docs/mappings")
 RACE_ETHNICITY_FILE = MAPPINGS_DIR / "race_ethnicity_map.csv"
 YES_NO_FILE = MAPPINGS_DIR / "yes_no_bool_map.csv"
+RMS_EXPORT_PATH = Path("raw_data/xlsx/output/_2023_2025_10_31_dv_rms.csv")
+CAD_EXPORT_PATH = Path("raw_data/xlsx/output/_2023_2025_10_31_dv_cad.csv")
 EASTERN = ZoneInfo("America/New_York")
 
 
@@ -210,16 +212,12 @@ def consolidate_day_of_week(df):
     
     return df
 
-def handle_municipality_code(df):
-    """Handle MunicipalityCode - if all values are the same, we can note it or remove"""
-    if 'MunicipalityCode' in df.columns:
-        unique_vals = df['MunicipalityCode'].unique()
-        if len(unique_vals) == 1:
-            val = unique_vals[0]
-            logger.info(f"MunicipalityCode has single value: {val}")
-            logger.info("Keeping column but noting it's constant")
-            # Could remove: df = df.drop(columns=['MunicipalityCode'])
-    
+def drop_municipality_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove municipality columns that duplicate static metadata."""
+    drop_cols = [col for col in ("Municipality", "MunicipalityCode", "MunicipalityPhone") if col in df.columns]
+    if drop_cols:
+        df = df.drop(columns=drop_cols)
+        logger.info("Dropped municipality columns: %s", ", ".join(drop_cols))
     return df
 
 def ensure_data_types(df):
@@ -270,6 +268,119 @@ def ensure_data_types(df):
     
     return df
 
+
+def _load_reference_csv(path: Path, required_columns: set[str]) -> pd.DataFrame | None:
+    if not path.exists():
+        logger.warning("Reference file %s not found; skipping backfill.", path)
+        return None
+    try:
+        ref_df = pd.read_csv(path, engine="pyarrow")
+    except (ImportError, ValueError):
+        ref_df = pd.read_csv(path, low_memory=False)
+    missing = required_columns.difference(ref_df.columns)
+    if missing:
+        logger.warning("Reference file %s missing columns: %s", path, ", ".join(sorted(missing)))
+        return None
+    return ref_df
+
+
+def backfill_temporal_fields(df: pd.DataFrame) -> pd.DataFrame:
+    """Backfill OffenseDate, DayOfWeek, and Time using RMS (primary) and CAD (fallback) data."""
+    if "CaseNumber" not in df.columns:
+        logger.warning("CaseNumber column missing; cannot backfill temporal fields.")
+        return df
+
+    case_key = df["CaseNumber"].astype(str).str.strip()
+
+    offense_dates = pd.to_datetime(df.get("OffenseDate"), errors="coerce")
+    time_values = pd.to_timedelta(df.get("Time"), errors="coerce")
+    day_values = df.get("DayOfWeek").astype("string") if "DayOfWeek" in df.columns else pd.Series(pd.NA, index=df.index, dtype="string")
+
+    offense_missing = offense_dates.isna()
+    time_missing = time_values.isna() | (time_values == pd.Timedelta(0))
+    day_missing = day_values.isna() | (day_values.str.strip() == "")
+
+    rms_df = _load_reference_csv(RMS_EXPORT_PATH, {"Case Number", "Incident Date", "Incident Time"})
+    if rms_df is not None:
+        rms_df["_case_key"] = rms_df["Case Number"].astype(str).str.strip()
+        rms_df["_incident_date"] = pd.to_datetime(rms_df["Incident Date"], errors="coerce")
+        rms_df["_incident_time"] = pd.to_timedelta(rms_df["Incident Time"], errors="coerce")
+        rms_df["_incident_dow"] = rms_df["_incident_date"].dt.day_name().str[:3]
+
+        date_map = rms_df.dropna(subset=["_incident_date"]).set_index("_case_key")["_incident_date"].to_dict()
+        time_map = rms_df.dropna(subset=["_incident_time"]).set_index("_case_key")["_incident_time"].to_dict()
+        dow_map = rms_df.dropna(subset=["_incident_dow"]).set_index("_case_key")["_incident_dow"].to_dict()
+
+        offense_dates[offense_missing] = case_key.map(date_map)[offense_missing]
+        time_values[time_missing] = case_key.map(time_map)[time_missing]
+        day_values[day_missing] = case_key.map(dow_map)[day_missing]
+
+        offense_missing = offense_dates.isna()
+        time_missing = time_values.isna() | (time_values == pd.Timedelta(0))
+        day_missing = day_values.isna() | (day_values.str.strip() == "")
+
+    cad_df = _load_reference_csv(CAD_EXPORT_PATH, {"ReportNumberNew", "Time of Call", "DayofWeek"})
+    if cad_df is not None:
+        cad_df["_case_key"] = cad_df["ReportNumberNew"].astype(str).str.strip()
+        cad_dt = pd.to_datetime(cad_df["Time of Call"], errors="coerce")
+        cad_df["_call_date"] = cad_dt.dt.normalize()
+        cad_df["_call_time"] = pd.to_timedelta(cad_dt.dt.strftime("%H:%M:%S"), errors="coerce")
+        cad_df["_call_dow"] = cad_df["DayofWeek"].astype(str).str.strip().str[:3]
+
+        cad_date_map = cad_df.dropna(subset=["_call_date"]).set_index("_case_key")["_call_date"].to_dict()
+        cad_time_map = cad_df.dropna(subset=["_call_time"]).set_index("_case_key")["_call_time"].to_dict()
+        cad_dow_map = cad_df.dropna(subset=["_call_dow"]).set_index("_case_key")["_call_dow"].to_dict()
+
+        offense_dates[offense_missing] = case_key.map(cad_date_map)[offense_missing]
+        time_values[time_missing] = case_key.map(cad_time_map)[time_missing]
+        day_values[day_missing] = case_key.map(cad_dow_map)[day_missing]
+
+    df["OffenseDate"] = offense_dates.dt.date
+    if "Time" in df.columns:
+        df["Time"] = time_values
+    if "DayOfWeek" in df.columns:
+        df["DayOfWeek"] = day_values.str[:3]
+    else:
+        df["DayOfWeek"] = day_values.str[:3]
+
+    return df
+
+
+def normalize_death_flags(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert death indicator columns to boolean."""
+    death_cols = [col for col in ("JuvDeaths_M", "AdultDeaths_M", "AdultDeaths_F", "JuvDeaths_F") if col in df.columns]
+    for col in death_cols:
+        series = df[col]
+        df[col] = (
+            series.replace({"0": 0, "1": 1})
+            .astype("float")
+            .apply(lambda x: None if pd.isna(x) else bool(int(x)))
+            .astype("boolean")
+        )
+    if death_cols:
+        logger.info("Normalised death indicator columns to boolean: %s", ", ".join(death_cols))
+    return df
+
+
+def format_time_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert timedelta columns to HH:MM:SS string format for readability."""
+    def _format_td(value) -> str | None:
+        if pd.isna(value):
+            return None
+        td = pd.to_timedelta(value, errors="coerce")
+        if pd.isna(td):
+            return None
+        total_seconds = int(td.total_seconds())
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    for col in ("Time", "TotalTime"):
+        if col in df.columns:
+            df[col] = df[col].apply(_format_td).astype("string")
+    return df
+
+
 def _load_tabular(input_path: Path) -> pd.DataFrame:
     """Load CSV (preferred) or Excel input into a DataFrame."""
     suffix = input_path.suffix.lower()
@@ -302,13 +413,16 @@ def process_dv_file(input_file, output_file=None):
     
     # Apply transformations in order
     df = fix_offense_date_column(df)
-    df = ensure_data_types(df)
     race_map, ethnicity_map = load_race_ethnicity_mappings()
     df = consolidate_victim_race(df, race_map)
     df = consolidate_victim_ethnicity(df, ethnicity_map)
     df = rename_sex_columns(df)
     df = consolidate_day_of_week(df)
-    df = handle_municipality_code(df)
+    df = drop_municipality_columns(df)
+    df = backfill_temporal_fields(df)
+    df = ensure_data_types(df)
+    df = normalize_death_flags(df)
+    df = format_time_columns(df)
     
     logger.info(f"Reduced from {original_cols} to {len(df.columns)} columns")
     
@@ -325,6 +439,11 @@ def process_dv_file(input_file, output_file=None):
     if suffix == ".csv" or suffix == "":
         if suffix == "":
             output_path = output_path.with_suffix(".csv")
+        if output_path.exists():
+            try:
+                output_path.unlink()
+            except PermissionError:
+                logger.warning("Could not remove existing output %s before write; attempting to overwrite directly.", output_path)
         df.to_csv(output_path, index=False)
     elif suffix in {".xlsx", ".xlsm", ".xls"}:
         df.to_excel(output_path, index=False, engine='openpyxl')

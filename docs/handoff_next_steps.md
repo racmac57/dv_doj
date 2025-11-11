@@ -8,6 +8,7 @@ This note captures the current repository state and provides a suggested opening
 - CLI entry point `etl.py` supports export → profile → transform → map → verify workflows.  
   `python etl.py --help` shows available commands.
 - Core ETL scripts now ingest CSV sources by default (using the `pyarrow` engine when available) and fall back to Excel only when a CSV is absent.
+- DV transform pipeline backfills `OffenseDate`, `Time`, and `DayOfWeek` from RMS data (CAD as fallback), formats time fields as `HH:MM:SS`, normalises death indicators to booleans, and prunes redundant municipality columns.
 - CI on GitHub Actions (Windows) runs lint, type checks, tests.
 - Documentation refreshed: README, PROJECT_SUMMARY, CHANGELOG, PII policy, demographic notes.
 - Raw Excel files converted to CSV via `python etl.py export --src raw_data/xlsx --out raw_data/csv`.
