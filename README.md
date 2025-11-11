@@ -184,4 +184,21 @@ The archived documents capture historical context, prior analysis, and setup gui
 2. Check AI reports in `analysis/ai_responses/` for data anomalies.
 3. Consult the documentation listed above for deeper dives.
 
+## Future Enhancements & Known Risks
+
+### Enhancements to consider
+
+- Expand pytest coverage (target ≥80%) across `etl_scripts/`.
+- Introduce secret scanning/pre-commit hooks and maintain a published `.env.example`.
+- Profile large Excel workloads (≥20 MB) and document/perhaps optimize long-running steps.
+- Broaden GitHub Actions coverage (e.g., add `ubuntu-latest` matrix) and cache dependencies.
+- Automate semantic versioning or release tagging once the toolchain stabilises.
+
+### Known blind spots and mitigations
+
+- Potential PII exposure if raw data leaks: enforce secret scanning and redact outputs.
+- Performance limits on large files: profile with `cProfile`, consider batching or chunked reads.
+- CI currently Windows-only: add cross-platform runners to catch portability issues.
+- Release management: no automated tagging/versioning—plan for semantic releases.
+
 Happy analyzing!
