@@ -16,6 +16,7 @@ dv_doj/
 │   └── ai_responses/                 # AI-generated analysis reports
 ├── etl_scripts/                      # All Python utilities and pipelines
 │   ├── ai_data_analyzer.py           # Main AI data profiler
+│   ├── backfill_dv.py                # CSV-first DV backfill + validation suite
 │   ├── base_etl.py                   # ETL framework and helpers
 │   ├── export_excel_sheets_to_csv.py # Excel ➜ CSV converter
 │   ├── fix_dv_headers.py             # DV header normalization
@@ -71,7 +72,19 @@ dv_doj/
 
    The CLI orchestrates the header fix, data transformation, mapping, and verification helpers.
 
-5. **Explore results**
+5. **Backfill & validate DV outputs**
+
+   ```bash
+   python -m etl_scripts.backfill_dv \
+     --dv processed_data/_2023_2025_10_31_dv_fixed_transformed_transformed.csv \
+     --rms raw_data/xlsx/output/_2023_2025_10_31_dv_rms.csv \
+     --cad raw_data/xlsx/output/_2023_2025_10_31_dv_cad.csv \
+     --out processed_data/dv_final.csv
+   ```
+
+   The script merges RMS/CAD context, flags missing case numbers/ages, writes `processed_data/dv_final.csv`, and emits validation artifacts in `logs/` (`validation_report.txt`, `quality_metrics.json`).
+
+6. **Explore results**
    - Review AI outputs in `analysis/ai_responses/`
    - Inspect cleaned files in `processed_data/`
    - Use notebooks in `notebooks/` for ad hoc analysis
@@ -81,7 +94,7 @@ dv_doj/
 - **Environment** — `pyproject.toml` pins runtime dependencies; `make setup` provisions a local `.venv`.
 - **CLI** — `python etl.py` exposes `export`, `profile`, `transform`, `map`, and `verify` workflows (implemented with Click).
 - **Quality Gates** — `make qa` runs `ruff`, `mypy`, and `pytest`; `make fmt` auto-formats imports and style issues.
-- **Tests** — Lightweight fixtures in `tests/fixtures/mini/` keep regressions in check (`make test`).
+- **Tests** — Extensive unit and integration coverage (`pytest tests/test_backfill_functions_edge_cases.py` + `tests/integration/test_suite.py`).
 - **CI** — `.github/workflows/ci.yml` executes the same lint/type/test pipeline on Windows runners for every push and PR.
 
 ### CLI Commands
@@ -95,6 +108,7 @@ Run the commands from the repository root using the project virtual environment 
 | `transform` | Apply DV-specific transformations. | `python etl.py transform --src processed_data --out processed_data` |
 | `map` | Join DV and RMS data for mapping. | `python etl.py map --src processed_data --out processed_data` |
 | `verify` | Emit a JSON verification report. | `python etl.py verify --src processed_data --out logs` |
+| `python -m etl_scripts.backfill_dv` | Backfill RMS/CAD context, flag data quality, and write validation logs. | `python -m etl_scripts.backfill_dv --dv ... --rms ... --cad ... --out processed_data/dv_final.csv` |
 
 ## Data Snapshot
 
@@ -127,6 +141,9 @@ Converted CSV counterparts are stored in `output/`. All sensitive data should re
 
 - **`etl_scripts/base_etl.py`**  
   Provides the `BaseETL` framework plus demographic helpers for reusable Extract-Transform-Load pipelines.
+
+- **`etl_scripts/backfill_dv.py`**  
+  Reconciles DV outputs with RMS/CAD exports (CSV-first), adds quality flags (`CN_Flag`, `VA_Flag`), standardises times, drops incomplete records, and writes validation reports/metrics.
 
 - **`etl_scripts/export_excel_sheets_to_csv.py`**  
   Batch converts each sheet in supported Excel workbooks to CSV with progress bars, error handling, and execution logs.
@@ -183,5 +200,22 @@ The archived documents capture historical context, prior analysis, and setup gui
 1. Review `logs/analysis.log` for execution issues.
 2. Check AI reports in `analysis/ai_responses/` for data anomalies.
 3. Consult the documentation listed above for deeper dives.
+
+## Future Enhancements & Known Risks
+
+### Enhancements to consider
+
+- Expand pytest coverage (target ≥80%) across `etl_scripts/`.
+- Introduce secret scanning/pre-commit hooks and maintain a published `.env.example`.
+- Profile large Excel workloads (≥20 MB) and document/perhaps optimize long-running steps.
+- Broaden GitHub Actions coverage (e.g., add `ubuntu-latest` matrix) and cache dependencies.
+- Automate semantic versioning or release tagging once the toolchain stabilises.
+
+### Known blind spots and mitigations
+
+- Potential PII exposure if raw data leaks: enforce secret scanning and redact outputs.
+- Performance limits on large files: profile with `cProfile`, consider batching or chunked reads.
+- CI currently Windows-only: add cross-platform runners to catch portability issues.
+- Release management: no automated tagging/versioning—plan for semantic releases.
 
 Happy analyzing!

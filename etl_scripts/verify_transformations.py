@@ -15,10 +15,28 @@ DEFAULT_OUTPUT = Path("logs")
 def _select_input_file(src: Path) -> Path:
     if src.is_file():
         return src
-    candidates = sorted(src.glob("*_dv_fixed_transformed.xlsx"))
+    candidates = sorted(src.glob("*_dv_fixed_transformed.csv"))
+    if not candidates:
+        candidates = sorted(src.glob("*_transformed.csv"))
+    if not candidates:
+        candidates = sorted(src.glob("*_dv_fixed_transformed.xlsx"))
+    if not candidates:
+        candidates = sorted(src.glob("*_transformed.xlsx"))
     if not candidates:
         raise FileNotFoundError(f"No transformed DV files found in {src}")
     return candidates[0]
+
+
+def _load_tabular(path: Path) -> pd.DataFrame:
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        try:
+            return pd.read_csv(path, engine="pyarrow")
+        except (ImportError, ValueError):
+            return pd.read_csv(path, low_memory=False)
+    if suffix in {".xlsx", ".xlsm", ".xls"}:
+        return pd.read_excel(path, engine="openpyxl")
+    raise ValueError(f"Unsupported input format: {path}")
 
 
 def _column_metrics(df: pd.DataFrame) -> Dict[str, Any]:
@@ -67,7 +85,7 @@ def main(src=None, out=None) -> Path | None:
         print(exc)
         return None
 
-    df = pd.read_excel(input_file)
+    df = _load_tabular(input_file)
     report = build_report(df)
     report_path = out_dir / "verify_report.json"
     report_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
