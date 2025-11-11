@@ -40,10 +40,16 @@ class BaseETL:
         self.logger.info(f"Extracting from {source_file}")
         
         try:
-            if source_file.suffix.lower() == '.xlsx':
+            suffix = source_file.suffix.lower()
+
+            if suffix == '.csv':
+                try:
+                    df = pd.read_csv(source_file, encoding='utf-8', engine='pyarrow')
+                except (ImportError, ValueError):
+                    self.logger.debug("pyarrow engine unavailable; falling back to default pandas CSV reader")
+                    df = pd.read_csv(source_file, encoding='utf-8', low_memory=False)
+            elif suffix in {'.xlsx', '.xlsm', '.xls'}:
                 df = pd.read_excel(source_file, engine='openpyxl')
-            elif source_file.suffix.lower() == '.csv':
-                df = pd.read_csv(source_file, encoding='utf-8', low_memory=False)
             else:
                 raise ValueError(f"Unsupported file type: {source_file.suffix}")
             

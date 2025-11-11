@@ -7,6 +7,7 @@ This note captures the current repository state and provides a suggested opening
 - Environment pinned in `pyproject.toml` (Python 3.11+, pandas/openpyxl, Click CLI, Ruff/Mypy/Pytest).
 - CLI entry point `etl.py` supports export → profile → transform → map → verify workflows.  
   `python etl.py --help` shows available commands.
+- Core ETL scripts now ingest CSV sources by default (using the `pyarrow` engine when available) and fall back to Excel only when a CSV is absent.
 - CI on GitHub Actions (Windows) runs lint, type checks, tests.
 - Documentation refreshed: README, PROJECT_SUMMARY, CHANGELOG, PII policy, demographic notes.
 - Raw Excel files converted to CSV via `python etl.py export --src raw_data/xlsx --out raw_data/csv`.
@@ -24,8 +25,8 @@ This note captures the current repository state and provides a suggested opening
    ```bash
    python etl.py export --src raw_data/xlsx --out raw_data/csv
    python etl.py profile --src raw_data/csv --out analysis/ai_responses
-   python etl.py transform --src processed_data --out processed_data
-   python etl.py map --src processed_data --out processed_data
+   python etl.py transform --src processed_data --out processed_data  # writes *_transformed.csv outputs
+   python etl.py map --src processed_data --out processed_data        # expects RMS CSV in raw_data/xlsx/output/
    python etl.py verify --src processed_data --out logs
    ```
 4. **Testing focus areas**:

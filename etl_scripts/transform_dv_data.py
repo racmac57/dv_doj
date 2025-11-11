@@ -3,11 +3,12 @@ Enhanced DV Data Transformation
 Consolidates boolean columns into single categorical columns and fixes data types
 """
 
-import pandas as pd
 import logging
-from pathlib import Path
-from datetime import datetime, time
 import re
+from datetime import datetime, time
+from pathlib import Path
+
+import pandas as pd
 from zoneinfo import ZoneInfo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -269,6 +270,23 @@ def ensure_data_types(df):
     
     return df
 
+def _load_tabular(input_path: Path) -> pd.DataFrame:
+    """Load CSV (preferred) or Excel input into a DataFrame."""
+    suffix = input_path.suffix.lower()
+    if suffix == ".csv":
+        try:
+            return pd.read_csv(input_path, engine="pyarrow")
+        except (ImportError, ValueError):
+            return pd.read_csv(input_path, low_memory=False)
+    if suffix in {".xlsx", ".xlsm", ".xls"}:
+        logger.warning(
+            "Reading Excel input %s; consider converting to CSV for faster processing.",
+            input_path,
+        )
+        return pd.read_excel(input_path, engine="openpyxl")
+    raise ValueError(f"Unsupported input format for DV data: {input_path.suffix}")
+
+
 def process_dv_file(input_file, output_file=None):
     """
     Process the DV file with all transformations
@@ -276,7 +294,8 @@ def process_dv_file(input_file, output_file=None):
     logger.info(f"Processing {input_file}")
     
     # Read the file
-    df = pd.read_excel(input_file, engine='openpyxl')
+    input_path = Path(input_file)
+    df = _load_tabular(input_path)
     logger.info(f"Loaded {len(df)} rows, {len(df.columns)} columns")
     
     original_cols = len(df.columns)
@@ -295,45 +314,54 @@ def process_dv_file(input_file, output_file=None):
     
     # Save output
     if output_file is None:
-        output_file = Path('processed_data') / f"{Path(input_file).stem}_transformed.xlsx"
+        output_file = Path('processed_data') / f"{input_path.stem}_transformed.csv"
     
-    output_file = Path(output_file)
-    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Saving to {output_file}")
+    suffix = output_path.suffix.lower()
+    logger.info(f"Saving to {output_path}")
     
-    # Save as Excel
-    df.to_excel(output_file, index=False, engine='openpyxl')
-    
-    # Also save as CSV for easy import
-    csv_file = output_file.with_suffix('.csv')
-    df.to_csv(csv_file, index=False)
-    logger.info(f"Also saved as CSV: {csv_file}")
+    if suffix == ".csv" or suffix == "":
+        if suffix == "":
+            output_path = output_path.with_suffix(".csv")
+        df.to_csv(output_path, index=False)
+    elif suffix in {".xlsx", ".xlsm", ".xls"}:
+        df.to_excel(output_path, index=False, engine='openpyxl')
+    else:
+        raise ValueError(f"Unsupported output format: {output_path.suffix}")
     
     return df
 
 def main(src=None, out=None):
     """Main function"""
     if src is None:
-        input_file = Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx')
+        candidates = list(Path('processed_data').glob("*_dv_fixed*.csv"))
+        if not candidates:
+            candidates = list(Path('processed_data').glob("*_dv_fixed*.xlsx"))
+        input_file = candidates[0] if candidates else Path('processed_data/_2023_2025_10_31_dv_fixed.csv')
     else:
         src_path = Path(src)
         if src_path.is_dir():
-            candidates = sorted(src_path.glob("*_dv_fixed.xlsx"))
+            candidates = sorted(src_path.glob("*dv*.csv"))
             if not candidates:
-                default_candidates = sorted(Path('processed_data').glob("*_dv_fixed.xlsx"))
-                if default_candidates:
-                    input_file = default_candidates[0]
+                candidates = sorted(src_path.glob("*dv*.xlsx"))
+            if candidates:
+                input_file = candidates[0]
+            else:
+                fallback = sorted(Path('processed_data').glob("*dv*.csv"))
+                if not fallback:
+                    fallback = sorted(Path('processed_data').glob("*dv*.xlsx"))
+                if fallback:
+                    input_file = fallback[0]
                     logger.warning(
-                        "No *_dv_fixed.xlsx files found in %s; using fallback %s",
+                        "No DV files found in %s; using fallback %s",
                         src_path,
                         input_file,
                     )
                 else:
-                    logger.error("No *_dv_fixed.xlsx files found in %s", src_path)
+                    logger.error("No DV files found in %s", src_path)
                     return
-            else:
-                input_file = candidates[0]
         else:
             input_file = src_path
 
@@ -344,7 +372,7 @@ def main(src=None, out=None):
 
     output_dir = Path(out) if out else Path('processed_data')
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir / f"{input_file.stem}_transformed.xlsx"
+    output_file = output_dir / f"{input_file.stem}_transformed.csv"
 
     print("="*80)
     print("DV DATA TRANSFORMATION")
@@ -356,7 +384,6 @@ def main(src=None, out=None):
     print("TRANSFORMATION COMPLETE")
     print("="*80)
     print(f"\nOutput saved to: {output_file}")
-    print(f"CSV version: {output_file.with_suffix('.csv')}")
     print(f"\nFinal column count: {len(df.columns)}")
     print(f"\nKey consolidated columns:")
     if 'VictimRace' in df.columns:

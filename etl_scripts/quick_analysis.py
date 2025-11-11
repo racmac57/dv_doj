@@ -3,9 +3,10 @@ Quick Analysis Script for NJ CAD/DV Data
 Run this script to get immediate insights from your data
 """
 
-import pandas as pd
 import json
 from pathlib import Path
+
+import pandas as pd
 
 def print_section(title):
     """Print a formatted section header"""
@@ -18,14 +19,17 @@ def analyze_cad_data():
     print_section("NJ CAD Domestic Violence Data Analysis")
     
     # Load data
-    csv_path = Path('raw_data/xlsx/output/_2023_2025_10_31_dv_cad.csv')
+    csv_path = Path('raw_data/csv/_2023_2025_10_31_dv_cad.csv')
     
     if not csv_path.exists():
         print(f"Error: Could not find {csv_path}")
         return None
     
     print(f"Loading data from {csv_path}...")
-    df = pd.read_csv(csv_path, low_memory=False)
+    try:
+        df = pd.read_csv(csv_path, engine="pyarrow")
+    except (ImportError, ValueError):
+        df = pd.read_csv(csv_path, low_memory=False)
     print(f"Loaded {len(df):,} records with {len(df.columns)} columns")
     
     # Basic Statistics

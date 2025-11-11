@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-11-11
+
+### Changed
+- Updated DV ETL helpers (`transform_dv_data.py`, `map_dv_to_rms_locations.py`, `verify_transformations.py`, utility scripts) to prefer CSV inputs using the `pyarrow` engine, falling back to legacy Excel sources when needed.
+- Adjusted RMS mapping workflow to prioritize the headered CSV exported under `raw_data/xlsx/output/`, ensuring case-number joins succeed when Excel sheets are unavailable.
+- Refined shared ETL loader logic to avoid unsupported `low_memory` flags with the `pyarrow` engine.
+
+### Fixed
+- Confirmed `python etl.py transform`, `map`, and `verify` run end-to-end against the CSV pipeline after installing the `rich` dependency.
+
+### Documentation
+- Refreshed `docs/handoff_next_steps.md` to capture the CSV-first workflow expectations and RMS source location guidance.
+
 ## [1.3.0] - 2025-11-11
 
 ### Added

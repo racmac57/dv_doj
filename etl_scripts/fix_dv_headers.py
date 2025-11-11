@@ -3,10 +3,11 @@ Fix column headers in the DV state form file and convert boolean values
 Also maps Case Numbers to RMS file for location data
 """
 
-import pandas as pd
+import logging
 import re
 from pathlib import Path
-import logging
+
+import pandas as pd
 
 YES_NO_MAP_FILE = Path("docs/mappings/yes_no_bool_map.csv")
 
@@ -131,13 +132,40 @@ def convert_boolean_values(df):
     
     return df
 
+def _read_tabular(path: Path, **kwargs) -> pd.DataFrame:
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        try:
+            return pd.read_csv(path, engine="pyarrow", **kwargs)
+        except (ImportError, ValueError):
+            return pd.read_csv(path, low_memory=False, **kwargs)
+    if suffix in {".xlsx", ".xlsm", ".xls"}:
+        return pd.read_excel(path, engine='openpyxl', **kwargs)
+    raise ValueError(f"Unsupported file type: {path}")
+
+
 def examine_files():
     """Examine the files to understand their structure"""
-    dv_file = Path('raw_data/xlsx/_2023_2025_10_31_dv.xlsx')
-    rms_file = Path('raw_data/xlsx/_2023_2025_10_31_dv_rms.xlsx')
+    dv_candidates = [
+        Path('raw_data/csv/_2023_2025_10_31_dv.csv'),
+        Path('processed_data/_2023_2025_10_31_dv_fixed.csv'),
+        Path('raw_data/xlsx/_2023_2025_10_31_dv.xlsx'),
+    ]
+    rms_candidates = [
+        Path('raw_data/csv/_2023_2025_10_31_dv_rms.csv'),
+        Path('raw_data/xlsx/_2023_2025_10_31_dv_rms.xlsx'),
+    ]
+
+    dv_file = next((path for path in dv_candidates if path.exists()), None)
+    rms_file = next((path for path in rms_candidates if path.exists()), None)
+
+    if dv_file is None:
+        raise FileNotFoundError("No DV source file found. Expected CSV export or fallback Excel workbook.")
+    if rms_file is None:
+        raise FileNotFoundError("No RMS source file found. Expected CSV export or fallback Excel workbook.")
     
     logger.info(f"Examining {dv_file}")
-    df_dv = pd.read_excel(dv_file, nrows=5)
+    df_dv = _read_tabular(dv_file, nrows=5)
     
     logger.info(f"DV file columns ({len(df_dv.columns)}):")
     problematic_cols = []
@@ -154,7 +182,7 @@ def examine_files():
             print(f"  {col:50s} - {', '.join(issues)}")
     
     logger.info(f"\nExamining {rms_file}")
-    df_rms = pd.read_excel(rms_file, nrows=5)
+    df_rms = _read_tabular(rms_file, nrows=5)
     
     logger.info(f"RMS file columns ({len(df_rms.columns)}):")
     case_cols = [c for c in df_rms.columns if 'case' in c.lower() or 'number' in c.lower()]
@@ -172,7 +200,8 @@ def process_dv_file(input_file, output_file=None):
     logger.info(f"Processing {input_file}")
     
     # Read the file
-    df = pd.read_excel(input_file, engine='openpyxl')
+    input_path = Path(input_file)
+    df = _read_tabular(input_path)
     logger.info(f"Loaded {len(df)} rows, {len(df.columns)} columns")
     
     # Fix column headers
@@ -183,13 +212,21 @@ def process_dv_file(input_file, output_file=None):
     
     # Save output
     if output_file is None:
-        output_file = Path('processed_data') / f"{Path(input_file).stem}_fixed.xlsx"
+        output_file = Path('processed_data') / f"{input_path.stem}_fixed.csv"
     
-    output_file = Path(output_file)
-    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Saving to {output_file}")
-    df.to_excel(output_file, index=False, engine='openpyxl')
+    logger.info(f"Saving to {output_path}")
+    suffix = output_path.suffix.lower()
+    if suffix == ".csv" or suffix == "":
+        if suffix == "":
+            output_path = output_path.with_suffix(".csv")
+        df.to_csv(output_path, index=False)
+    elif suffix in {".xlsx", ".xlsm", ".xls"}:
+        df.to_excel(output_path, index=False, engine='openpyxl')
+    else:
+        raise ValueError(f"Unsupported output format: {output_path.suffix}")
     
     logger.info(f"Processed file saved. Changed {len(column_mapping)} column names")
     
@@ -207,7 +244,13 @@ if __name__ == "__main__":
     print("="*80)
     
     # Process the DV file
-    input_file = Path('raw_data/xlsx/_2023_2025_10_31_dv.xlsx')
+    input_candidates = [
+        Path('raw_data/csv/_2023_2025_10_31_dv.csv'),
+        Path('raw_data/xlsx/_2023_2025_10_31_dv.xlsx'),
+    ]
+    input_file = next((path for path in input_candidates if path.exists()), None)
+    if input_file is None:
+        raise FileNotFoundError("Unable to locate DV input file for processing.")
     df_fixed, mapping = process_dv_file(input_file)
     
     print(f"\nFixed {len(mapping)} column names")
@@ -215,5 +258,5 @@ if __name__ == "__main__":
     for old, new in sorted(mapping.items()):
         print(f"  {old:50s} -> {new}")
     
-    print(f"\nOutput saved to: processed_data/_2023_2025_10_31_dv_fixed.xlsx")
+    print(f"\nOutput saved to: processed_data/{input_file.stem}_fixed.csv")
 

@@ -3,10 +3,11 @@ Map Case Numbers from DV file to RMS file to get location data
 Prepares data for ArcGIS Pro mapping using arcpy
 """
 
-import pandas as pd
 import logging
 from pathlib import Path
 from typing import Optional, List
+
+import pandas as pd
 
 LOCATION_MAP_FILE = Path("docs/mappings/location_join_keys.csv")
 
@@ -39,14 +40,29 @@ def load_location_config(dataset: str = "domestic_violence"):
         "location_columns": location_cols or ["FullAddress"],
     }
 
+def _read_tabular(path: Path) -> pd.DataFrame:
+    """Read CSV (preferred) or Excel data into a DataFrame."""
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        try:
+            return pd.read_csv(path, engine="pyarrow")
+        except (ImportError, ValueError):
+            logger.debug("pyarrow engine unavailable; falling back to default pandas CSV reader for %s", path)
+            return pd.read_csv(path, low_memory=False)
+    if suffix in {".xlsx", ".xlsm", ".xls"}:
+        logger.warning("Reading Excel input %s; convert to CSV for faster processing if possible.", path)
+        return pd.read_excel(path, engine="openpyxl")
+    raise ValueError(f"Unsupported file type: {path.suffix} for {path}")
+
+
 def load_files(dv_file: Path, rms_file: Path):
     """Load both DV and RMS files"""
     logger.info(f"Loading DV file: {dv_file}")
-    df_dv = pd.read_excel(dv_file, engine='openpyxl')
+    df_dv = _read_tabular(dv_file)
     logger.info(f"DV file: {len(df_dv)} rows, {len(df_dv.columns)} columns")
     
     logger.info(f"Loading RMS file: {rms_file}")
-    df_rms = pd.read_excel(rms_file, engine='openpyxl')
+    df_rms = _read_tabular(rms_file)
     logger.info(f"RMS file: {len(df_rms)} rows, {len(df_rms.columns)} columns")
     
     return df_dv, df_rms
@@ -241,10 +257,14 @@ def main(src=None, out=None):
     dv_path = None
 
     if src is None:
-        candidates = [
-            Path('processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx'),
-            Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx'),
-        ]
+        candidates = sorted(Path('processed_data').glob("*dv*_transformed.csv"))
+        if not candidates:
+            candidates = sorted(Path('processed_data').glob("*dv*.csv"))
+        if not candidates:
+            candidates = [
+                Path('processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx'),
+                Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx'),
+            ]
         for candidate in candidates:
             if candidate.exists():
                 dv_path = candidate
@@ -252,13 +272,21 @@ def main(src=None, out=None):
     else:
         src_path = Path(src)
         if src_path.is_dir():
-            matches = sorted(src_path.glob("*dv*_transformed.xlsx"))
+            matches = sorted(src_path.glob("*dv*_transformed.csv"))
+            if not matches:
+                matches = sorted(src_path.glob("*dv*.csv"))
+            if not matches:
+                matches = sorted(src_path.glob("*dv*_transformed.xlsx"))
             if not matches:
                 matches = sorted(src_path.glob("*dv*.xlsx"))
             if matches:
                 dv_path = matches[0]
             else:
-                fallback = sorted(Path('processed_data').glob("*dv*_transformed.xlsx"))
+                fallback = sorted(Path('processed_data').glob("*dv*_transformed.csv"))
+                if not fallback:
+                    fallback = sorted(Path('processed_data').glob("*dv*.csv"))
+                if not fallback:
+                    fallback = sorted(Path('processed_data').glob("*dv*_transformed.xlsx"))
                 if not fallback:
                     fallback = sorted(Path('processed_data').glob("*dv*.xlsx"))
                 if fallback:
@@ -275,9 +303,18 @@ def main(src=None, out=None):
         logger.error("Unable to locate DV file to map. Checked %s", src)
         return
 
-    rms_file = Path('raw_data/xlsx/_2023_2025_10_31_dv_rms.xlsx')
-    if not rms_file.exists():
-        logger.error(f"RMS file not found: {rms_file}")
+    rms_candidates = [
+        Path('raw_data/xlsx/output/_2023_2025_10_31_dv_rms.csv'),
+        Path('raw_data/csv/_2023_2025_10_31_dv_rms.csv'),
+        Path('raw_data/xlsx/_2023_2025_10_31_dv_rms.xlsx'),
+    ]
+    rms_file = None
+    for candidate in rms_candidates:
+        if candidate.exists():
+            rms_file = candidate
+            break
+    if rms_file is None:
+        logger.error("Unable to locate RMS file. Checked: %s", rms_candidates)
         return
 
     df_dv, df_rms = load_files(dv_path, rms_file)
