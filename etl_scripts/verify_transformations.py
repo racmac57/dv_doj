@@ -1,87 +1,88 @@
-"""Verify the transformations were applied correctly"""
+"""Generate verification report for transformed DV dataset."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Dict, Any
 
 import pandas as pd
-from pathlib import Path
 
-df = pd.read_excel('processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx', nrows=10)
+DEFAULT_INPUT = Path("processed_data")
+DEFAULT_OUTPUT = Path("logs")
 
-print("="*80)
-print("VERIFICATION OF TRANSFORMATIONS")
-print("="*80)
 
-print("\n1. OffenseDate column:")
-if 'OffenseDate' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Sample: {df['OffenseDate'].head(3).tolist()}")
-    print(f"   Type: {type(df['OffenseDate'].iloc[0])}")
-    print(f"   Dtype: {df['OffenseDate'].dtype}")
-else:
-    print("   [MISSING]")
+def _select_input_file(src: Path) -> Path:
+    if src.is_file():
+        return src
+    candidates = sorted(src.glob("*_dv_fixed_transformed.xlsx"))
+    if not candidates:
+        raise FileNotFoundError(f"No transformed DV files found in {src}")
+    return candidates[0]
 
-print("\n2. Time column:")
-if 'Time' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Sample: {df['Time'].head(3).tolist()}")
-    print(f"   Dtype: {df['Time'].dtype}")
-else:
-    print("   [MISSING]")
 
-print("\n3. TotalTime column:")
-if 'TotalTime' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Sample: {df['TotalTime'].head(3).tolist()}")
-    print(f"   Dtype: {df['TotalTime'].dtype}")
-else:
-    print("   [MISSING]")
+def _column_metrics(df: pd.DataFrame) -> Dict[str, Any]:
+    metrics: Dict[str, Any] = {}
+    total_records = len(df)
+    for column in df.columns:
+        series = df[column]
+        nulls = int(series.isna().sum())
+        metrics[column] = {
+            "non_null": int(total_records - nulls),
+            "nulls": nulls,
+            "null_rate": float(nulls / total_records) if total_records else 0.0,
+            "dtype": str(series.dtype),
+        }
+    return metrics
 
-print("\n4. VictimAge column:")
-if 'VictimAge' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Sample: {df['VictimAge'].head(5).tolist()}")
-    print(f"   Dtype: {df['VictimAge'].dtype}")
-else:
-    print("   [MISSING]")
 
-print("\n5. VictimRace (consolidated):")
-if 'VictimRace' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Value counts: {df['VictimRace'].value_counts().to_dict()}")
-    print(f"   Sample: {df['VictimRace'].head(10).tolist()}")
-else:
-    print("   [MISSING]")
-    
-print("\n6. VictimEthnicity (consolidated):")
-if 'VictimEthnicity' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Value counts: {df['VictimEthnicity'].value_counts().to_dict()}")
-else:
-    print("   [MISSING]")
+def _key_checks(df: pd.DataFrame) -> Dict[str, Any]:
+    checks = {}
+    keys = ["OffenseDate", "VictimRace", "VictimEthnicity", "FemaleVictim", "MaleVictim", "DayOfWeek"]
+    for key in keys:
+        checks[key] = {
+            "present": key in df.columns,
+            "sample": df[key].head(3).tolist() if key in df.columns else [],
+        }
+    return checks
 
-print("\n7. Sex columns (renamed):")
-if 'FemaleVictim' in df.columns:
-    print(f"   [OK] FemaleVictim exists")
-else:
-    print("   ✗ FemaleVictim missing!")
-if 'MaleVictim' in df.columns:
-    print(f"   [OK] MaleVictim exists")
-else:
-    print("   ✗ MaleVictim missing!")
 
-print("\n8. DayOfWeek (consolidated):")
-if 'DayOfWeek' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Value counts: {df['DayOfWeek'].value_counts().to_dict()}")
-else:
-    print("   [MISSING]")
+def build_report(df: pd.DataFrame) -> Dict[str, Any]:
+    return {
+        "total_records": len(df),
+        "total_columns": len(df.columns),
+        "column_metrics": _column_metrics(df),
+        "key_checks": _key_checks(df),
+    }
 
-print("\n9. MunicipalityCode:")
-if 'MunicipalityCode' in df.columns:
-    print(f"   [OK] Exists")
-    print(f"   Unique values: {df['MunicipalityCode'].unique()}")
-else:
-    print("   [MISSING]")
 
-print("\n" + "="*80)
-print(f"Total columns: {len(df.columns)}")
-print("="*80)
+def main(src=None, out=None) -> Path | None:
+    src_path = Path(src) if src else DEFAULT_INPUT
+    out_dir = Path(out) if out else DEFAULT_OUTPUT
+    out_dir.mkdir(parents=True, exist_ok=True)
 
+    try:
+        input_file = _select_input_file(src_path)
+    except FileNotFoundError as exc:
+        print(exc)
+        return None
+
+    df = pd.read_excel(input_file)
+    report = build_report(df)
+    report_path = out_dir / "verify_report.json"
+    report_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+
+    print("=" * 80)
+    print("VERIFICATION REPORT")
+    print("=" * 80)
+    print(f"Input file: {input_file}")
+    print(f"Total records: {report['total_records']}")
+    print(f"Total columns: {report['total_columns']}")
+    print(f"Report saved to: {report_path}")
+    print("=" * 80)
+
+    return report_path
+
+
+if __name__ == "__main__":
+    main()

@@ -23,11 +23,14 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 # Setup logging
+LOG_DIR = Path("logs")
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/analysis.log'),
+        logging.FileHandler(LOG_DIR / 'analysis.log'),
         logging.StreamHandler()
     ]
 )
@@ -35,11 +38,9 @@ logging.basicConfig(
 class DataAnalyzer:
     """Main class for analyzing raw data files"""
     
-    def __init__(self, raw_data_dir='raw_data'):
+    def __init__(self, raw_data_dir='raw_data', results_dir='analysis/ai_responses'):
         self.raw_data_dir = Path(raw_data_dir)
-        self.xlsx_dir = self.raw_data_dir / 'xlsx'
-        self.csv_dir = self.raw_data_dir / 'csv'
-        self.results_dir = Path('analysis/ai_responses')
+        self.results_dir = Path(results_dir)
         self.results_dir.mkdir(parents=True, exist_ok=True)
         
     def analyze_file(self, file_path):
@@ -293,9 +294,29 @@ Provide recommendations for data cleaning and ETL pipeline development.
         
         return analysis_file, prompts_file
     
+    def _discover_files(self):
+        if self.raw_data_dir.is_file():
+            return [self.raw_data_dir]
+        
+        search_dirs = set()
+        if self.raw_data_dir.is_dir():
+            search_dirs.add(self.raw_data_dir)
+        xlsx_dir = self.raw_data_dir / 'xlsx'
+        csv_dir = self.raw_data_dir / 'csv'
+        if xlsx_dir.is_dir():
+            search_dirs.add(xlsx_dir)
+        if csv_dir.is_dir():
+            search_dirs.add(csv_dir)
+        
+        files = []
+        for directory in search_dirs:
+            files.extend(sorted(directory.glob('*.xlsx')))
+            files.extend(sorted(directory.glob('*.csv')))
+        return files
+    
     def run_analysis(self):
         """Run analysis on all files in raw_data directories"""
-        all_files = list(self.xlsx_dir.glob('*.xlsx')) + list(self.csv_dir.glob('*.csv'))
+        all_files = self._discover_files()
         
         if not all_files:
             logging.warning(f"No Excel or CSV files found in {self.raw_data_dir}")
@@ -304,20 +325,20 @@ Provide recommendations for data cleaning and ETL pipeline development.
         logging.info(f"Found {len(all_files)} files to analyze")
         
         for file_path in all_files:
-            # Analyze file
             analysis = self.analyze_file(file_path)
             
             if analysis:
-                # Generate prompts
                 prompts = self.generate_prompts(analysis)
-                
-                # Save results
                 self.save_analysis(analysis, prompts)
         
         logging.info("Analysis complete!")
 
 
-if __name__ == "__main__":
-    analyzer = DataAnalyzer()
+def main(src=None, out=None):
+    analyzer = DataAnalyzer(raw_data_dir=src or 'raw_data', results_dir=out or 'analysis/ai_responses')
     analyzer.run_analysis()
+
+
+if __name__ == "__main__":
+    main()
 

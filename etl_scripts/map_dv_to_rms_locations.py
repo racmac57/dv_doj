@@ -6,10 +6,38 @@ Prepares data for ArcGIS Pro mapping using arcpy
 import pandas as pd
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
+
+LOCATION_MAP_FILE = Path("docs/mappings/location_join_keys.csv")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def load_location_config(dataset: str = "domestic_violence"):
+    if not LOCATION_MAP_FILE.exists():
+        logger.warning("Location mapping file %s not found. Using defaults.", LOCATION_MAP_FILE)
+        return {
+            "dv_case_col": "CaseNumber",
+            "rms_case_col": "Case Number",
+            "location_columns": ["FullAddress"],
+        }
+    df = pd.read_csv(LOCATION_MAP_FILE)
+    row = df[df["dataset"] == dataset]
+    if row.empty:
+        logger.warning("Dataset %s not found in %s. Using defaults.", dataset, LOCATION_MAP_FILE)
+        return {
+            "dv_case_col": "CaseNumber",
+            "rms_case_col": "Case Number",
+            "location_columns": ["FullAddress"],
+        }
+    location_cols = str(row.iloc[0]["location_columns"]).split(";")
+    location_cols = [col.strip() for col in location_cols if col.strip()]
+    return {
+        "dv_case_col": row.iloc[0]["dv_case_col"],
+        "rms_case_col": row.iloc[0]["rms_case_col"],
+        "location_columns": location_cols or ["FullAddress"],
+    }
 
 def load_files(dv_file: Path, rms_file: Path):
     """Load both DV and RMS files"""
@@ -71,7 +99,7 @@ def map_case_numbers(df_dv: pd.DataFrame, df_rms: pd.DataFrame,
     
     return merged_df
 
-def prepare_for_arcgis(df: pd.DataFrame, output_file: Path):
+def prepare_for_arcgis(df: pd.DataFrame, output_file: Path, location_columns: Optional[List[str]] = None):
     """
     Prepare data for ArcGIS Pro mapping
     
@@ -82,8 +110,11 @@ def prepare_for_arcgis(df: pd.DataFrame, output_file: Path):
     logger.info(f"Preparing data for ArcGIS Pro mapping")
     
     # Identify location columns
-    location_cols = [c for c in df.columns if any(term in c.lower() for term in 
-                   ['address', 'location', 'street', 'lat', 'lon', 'x', 'y', 'coordinate'])]
+    if location_columns:
+        location_cols = [col for col in location_columns if col in df.columns]
+    else:
+        location_cols = [c for c in df.columns if any(term in c.lower() for term in 
+                       ['address', 'location', 'street', 'lat', 'lon', 'x', 'y', 'coordinate'])]
     
     logger.info(f"Location columns found: {location_cols}")
     
@@ -204,32 +235,53 @@ print("\\nScript complete!")
     
     logger.info(f"ArcGIS script created: {output_script}")
 
-def main():
+def main(src=None, out=None):
     """Main function"""
-    # File paths - use transformed file if available
-    transformed_file = Path('processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx')
-    fixed_file = Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx')
-    
-    if transformed_file.exists():
-        dv_file = transformed_file
-        logger.info("Using transformed DV file")
-    elif fixed_file.exists():
-        dv_file = fixed_file
-        logger.info("Using fixed DV file")
-    rms_file = Path('raw_data/xlsx/_2023_2025_10_31_dv_rms.xlsx')
-    
-    if not dv_file.exists():
-        logger.error(f"DV file not found: {dv_file}")
-        logger.info("Please run fix_dv_headers.py first to create the fixed DV file")
+    config = load_location_config()
+    dv_path = None
+
+    if src is None:
+        candidates = [
+            Path('processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx'),
+            Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx'),
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                dv_path = candidate
+                break
+    else:
+        src_path = Path(src)
+        if src_path.is_dir():
+            matches = sorted(src_path.glob("*dv*_transformed.xlsx"))
+            if not matches:
+                matches = sorted(src_path.glob("*dv*.xlsx"))
+            if matches:
+                dv_path = matches[0]
+            else:
+                fallback = sorted(Path('processed_data').glob("*dv*_transformed.xlsx"))
+                if not fallback:
+                    fallback = sorted(Path('processed_data').glob("*dv*.xlsx"))
+                if fallback:
+                    dv_path = fallback[0]
+                    logger.warning(
+                        "No DV files found in %s; using fallback %s",
+                        src_path,
+                        dv_path,
+                    )
+        else:
+            dv_path = src_path
+
+    if dv_path is None or not dv_path.exists():
+        logger.error("Unable to locate DV file to map. Checked %s", src)
         return
-    
+
+    rms_file = Path('raw_data/xlsx/_2023_2025_10_31_dv_rms.xlsx')
     if not rms_file.exists():
         logger.error(f"RMS file not found: {rms_file}")
         return
-    
-    # Load files
-    df_dv, df_rms = load_files(dv_file, rms_file)
-    
+
+    df_dv, df_rms = load_files(dv_path, rms_file)
+
     # Show column info
     print("\n" + "="*80)
     print("FILE STRUCTURE")
@@ -249,17 +301,24 @@ def main():
     print("\n" + "="*80)
     print("MAPPING CASE NUMBERS")
     print("="*80)
-    merged_df = map_case_numbers(df_dv, df_rms)
+    merged_df = map_case_numbers(
+        df_dv,
+        df_rms,
+        dv_case_col=config["dv_case_col"],
+        rms_case_col=config["rms_case_col"],
+    )
     
     # Prepare for ArcGIS
     print("\n" + "="*80)
     print("PREPARING FOR ARCGIS PRO")
     print("="*80)
-    output_file = Path('processed_data/dv_with_locations.xlsx')
-    summary = prepare_for_arcgis(merged_df, output_file)
+    output_dir = Path(out) if out else Path('processed_data')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / 'dv_with_locations.xlsx'
+    summary = prepare_for_arcgis(merged_df, output_file, config.get("location_columns"))
     
     # Create ArcGIS script
-    arcgis_script = Path('processed_data/arcgis_map_dv_incidents.py')
+    arcgis_script = output_dir / 'arcgis_map_dv_incidents.py'
     create_arcgis_script(merged_df, arcgis_script)
     
     print("\n" + "="*80)

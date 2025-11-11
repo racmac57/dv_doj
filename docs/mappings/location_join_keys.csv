@@ -1,0 +1,3 @@
+dataset,dv_case_col,rms_case_col,location_columns
+domestic_violence,CaseNumber,Case Number,"FullAddress;FullAddress2;Address"
+

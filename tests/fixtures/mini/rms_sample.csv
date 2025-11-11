@@ -1,0 +1,7 @@
+CaseNumber,FullAddress,PDZone,IncidentType,ResponseSeconds
+DV-1,123 Main St,HQ,Threats,120
+DV-2,456 Oak Ave,North,Assault,240
+DV-3,789 Pine Rd,East,Harassment,180
+DV-4,101 Maple Blvd,West,Assault,300
+DV-5,202 Birch Ln,South,Threats,90
+

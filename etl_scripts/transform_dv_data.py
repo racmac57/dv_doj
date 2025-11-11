@@ -8,9 +8,59 @@ import logging
 from pathlib import Path
 from datetime import datetime, time
 import re
+from zoneinfo import ZoneInfo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+MAPPINGS_DIR = Path("docs/mappings")
+RACE_ETHNICITY_FILE = MAPPINGS_DIR / "race_ethnicity_map.csv"
+YES_NO_FILE = MAPPINGS_DIR / "yes_no_bool_map.csv"
+EASTERN = ZoneInfo("America/New_York")
+
+
+def load_race_ethnicity_mappings():
+    if not RACE_ETHNICITY_FILE.exists():
+        logger.warning("Race/Ethnicity mapping file %s not found.", RACE_ETHNICITY_FILE)
+        return {}, {}
+    df = pd.read_csv(RACE_ETHNICITY_FILE)
+    race = {
+        str(row["source"]).strip(): str(row["value"]).strip()
+        for _, row in df[df["category"].str.lower() == "race"].iterrows()
+    }
+    ethnicity = {
+        str(row["source"]).strip(): str(row["value"]).strip()
+        for _, row in df[df["category"].str.lower() == "ethnicity"].iterrows()
+    }
+    return race, ethnicity
+
+
+def load_yes_no_mapping():
+    if not YES_NO_FILE.exists():
+        logger.warning("Yes/No mapping file %s not found.", YES_NO_FILE)
+        truthy = {"Y", "YES", "T", "TRUE", "1", "X", "O"}
+        falsy = {"N", "NO", "F", "FALSE", "0"}
+    else:
+        df = pd.read_csv(YES_NO_FILE)
+        truthy = {
+            str(v).strip().upper()
+            for v in df[df["boolean"].astype(str).str.lower() == "true"]["raw"]
+        }
+        falsy = {
+            str(v).strip().upper()
+            for v in df[df["boolean"].astype(str).str.lower() == "false"]["raw"]
+        }
+    return truthy, falsy
+
+
+def to_eastern(series: pd.Series) -> pd.Series:
+    dt_series = pd.to_datetime(series, errors="coerce")
+    if getattr(dt_series.dt, "tz", None) is None:
+        try:
+            return dt_series.dt.tz_localize(EASTERN, nonexistent="NaT", ambiguous="NaT")
+        except TypeError:
+            return dt_series.dt.tz_localize(EASTERN)
+    return dt_series.dt.tz_convert(EASTERN)
 
 def fix_offense_date_column(df):
     """Fix column 'c' or 'C' to be named 'OffenseDate' and ensure it's date-only"""
@@ -35,19 +85,12 @@ def fix_offense_date_column(df):
     
     return df
 
-def consolidate_victim_race(df):
+def consolidate_victim_race(df, race_mapping=None):
     """
     Consolidate VictimRace_X boolean columns into single VictimRace column
     with codes: W, A, B, P, I, U
     """
-    race_mapping = {
-        'VictimRace_W': 'W',  # White
-        'VictimRace_A': 'A',  # Asian
-        'VictimRace_B': 'B',  # Black/African American
-        'VictimRace_P': 'P',  # Native Hawaiian/Other Pacific Islander
-        'VictimRace_I': 'I',  # American Indian/Alaska Native
-        'VictimRace_U': 'U',  # Unknown
-    }
+    race_mapping = race_mapping or load_race_ethnicity_mappings()[0]
     
     race_cols = [col for col in race_mapping.keys() if col in df.columns]
     
@@ -60,13 +103,15 @@ def consolidate_victim_race(df):
     # Create new consolidated column
     df['VictimRace'] = None
     
+    truthy, _ = load_yes_no_mapping()
+
     for col, code in race_mapping.items():
         if col in df.columns:
             # Check if value is True or X/O
             mask = df[col] == True
             if not mask.any():
                 # Try checking for X or O
-                mask = df[col].astype(str).str.strip().str.upper().isin(['X', 'O', 'TRUE'])
+                mask = df[col].astype(str).str.strip().str.upper().isin(truthy)
             
             df.loc[mask, 'VictimRace'] = code
     
@@ -76,12 +121,14 @@ def consolidate_victim_race(df):
     
     return df
 
-def consolidate_victim_ethnicity(df):
+def consolidate_victim_ethnicity(df, ethnicity_mapping=None):
     """
     Consolidate VictimEthnic_H and VictimEthnic_NH into single VictimEthnicity column
     H = Hispanic, NH = Non-Hispanic
     """
-    ethnic_cols = [col for col in df.columns if 'VictimEthnic' in col]
+    _, ethnicity_defaults = load_race_ethnicity_mappings()
+    ethnicity_mapping = ethnicity_mapping or ethnicity_defaults
+    ethnic_cols = [col for col in ethnicity_mapping.keys() if col in df.columns]
     
     if not ethnic_cols:
         logger.warning("No VictimEthnic columns found")
@@ -91,19 +138,14 @@ def consolidate_victim_ethnicity(df):
     
     df['VictimEthnicity'] = None
     
-    # Hispanic
-    if 'VictimEthnic_H' in df.columns:
-        mask = df['VictimEthnic_H'] == True
-        if not mask.any():
-            mask = df['VictimEthnic_H'].astype(str).str.strip().str.upper().isin(['X', 'O', 'TRUE'])
-        df.loc[mask, 'VictimEthnicity'] = 'H'
-    
-    # Non-Hispanic
-    if 'VictimEthnic_NH' in df.columns:
-        mask = df['VictimEthnic_NH'] == True
-        if not mask.any():
-            mask = df['VictimEthnic_NH'].astype(str).str.strip().str.upper().isin(['X', 'O', 'TRUE'])
-        df.loc[mask, 'VictimEthnicity'] = 'NH'
+    truthy, _ = load_yes_no_mapping()
+
+    for col, code in ethnicity_mapping.items():
+        if col in df.columns:
+            mask = df[col] == True
+            if not mask.any():
+                mask = df[col].astype(str).str.strip().str.upper().isin(truthy)
+            df.loc[mask, 'VictimEthnicity'] = code
     
     # Drop old columns
     df = df.drop(columns=ethnic_cols)
@@ -184,10 +226,14 @@ def ensure_data_types(df):
     
     # OffenseDate should be date
     if 'OffenseDate' in df.columns:
-        if not pd.api.types.is_datetime64_any_dtype(df['OffenseDate']):
-            df['OffenseDate'] = pd.to_datetime(df['OffenseDate']).dt.date
-        else:
-            df['OffenseDate'] = pd.to_datetime(df['OffenseDate']).dt.date
+        localized = to_eastern(df['OffenseDate'])
+        df['OffenseDate'] = localized.dt.date
+
+    # Normalize other *_Date columns to timezone-aware datetimes
+    date_columns = [col for col in df.columns if col.endswith('Date') and col != 'OffenseDate']
+    for column in date_columns:
+        localized = to_eastern(df[column])
+        df[column] = localized
     
     # Time should be time (or timedelta if already duration)
     if 'Time' in df.columns:
@@ -238,8 +284,9 @@ def process_dv_file(input_file, output_file=None):
     # Apply transformations in order
     df = fix_offense_date_column(df)
     df = ensure_data_types(df)
-    df = consolidate_victim_race(df)
-    df = consolidate_victim_ethnicity(df)
+    race_map, ethnicity_map = load_race_ethnicity_mappings()
+    df = consolidate_victim_race(df, race_map)
+    df = consolidate_victim_ethnicity(df, ethnicity_map)
     df = rename_sex_columns(df)
     df = consolidate_day_of_week(df)
     df = handle_municipality_code(df)
@@ -265,27 +312,51 @@ def process_dv_file(input_file, output_file=None):
     
     return df
 
-def main():
+def main(src=None, out=None):
     """Main function"""
-    # Use the already-fixed file as input
-    input_file = Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx')
-    
+    if src is None:
+        input_file = Path('processed_data/_2023_2025_10_31_dv_fixed.xlsx')
+    else:
+        src_path = Path(src)
+        if src_path.is_dir():
+            candidates = sorted(src_path.glob("*_dv_fixed.xlsx"))
+            if not candidates:
+                default_candidates = sorted(Path('processed_data').glob("*_dv_fixed.xlsx"))
+                if default_candidates:
+                    input_file = default_candidates[0]
+                    logger.warning(
+                        "No *_dv_fixed.xlsx files found in %s; using fallback %s",
+                        src_path,
+                        input_file,
+                    )
+                else:
+                    logger.error("No *_dv_fixed.xlsx files found in %s", src_path)
+                    return
+            else:
+                input_file = candidates[0]
+        else:
+            input_file = src_path
+
     if not input_file.exists():
         logger.error(f"Input file not found: {input_file}")
         logger.info("Please run fix_dv_headers.py first")
         return
-    
+
+    output_dir = Path(out) if out else Path('processed_data')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / f"{input_file.stem}_transformed.xlsx"
+
     print("="*80)
     print("DV DATA TRANSFORMATION")
     print("="*80)
-    
-    df = process_dv_file(input_file)
-    
+
+    df = process_dv_file(input_file, output_file=output_file)
+
     print("\n" + "="*80)
     print("TRANSFORMATION COMPLETE")
     print("="*80)
-    print(f"\nOutput saved to: processed_data/_2023_2025_10_31_dv_fixed_transformed.xlsx")
-    print(f"CSV version: processed_data/_2023_2025_10_31_dv_fixed_transformed.csv")
+    print(f"\nOutput saved to: {output_file}")
+    print(f"CSV version: {output_file.with_suffix('.csv')}")
     print(f"\nFinal column count: {len(df.columns)}")
     print(f"\nKey consolidated columns:")
     if 'VictimRace' in df.columns:

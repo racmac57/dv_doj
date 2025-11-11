@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python -m pip install -U pip
+          .\.venv\Scripts\python -m pip install -e .
+          .\.venv\Scripts\python -m pip install ruff mypy pytest
+
+      - name: Lint
+        run: .\.venv\Scripts\python -m ruff check etl_scripts
+
+      - name: Type check
+        run: .\.venv\Scripts\python -m mypy etl_scripts
+
+      - name: Tests
+        run: .\.venv\Scripts\python -m pytest -q
+

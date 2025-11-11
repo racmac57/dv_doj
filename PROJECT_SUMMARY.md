@@ -6,37 +6,38 @@ A complete Python project for analyzing NJ CAD/RMS and Domestic Violence data wi
 
 ### ✅ Project Structure
 ```
-nj_cad_dv_analysis/
+dv_doj/
 ├── 📁 raw_data/
-│   ├── xlsx/          # Place Excel files here
-│   └── csv/           # Place CSV files here
+│   ├── xlsx/                  # Place Excel files here
+│   └── csv/                   # Place CSV files here
 ├── 📁 analysis/
-│   └── ai_responses/  # AI analysis outputs
-├── 📁 etl_scripts/    # All Python utilities and pipelines
+│   └── ai_responses/          # AI analysis outputs
+├── 📁 etl_scripts/            # All Python utilities and pipelines
 │   ├── ai_data_analyzer.py
-│   ├── base_etl.py
 │   ├── export_excel_sheets_to_csv.py
 │   ├── fix_dv_headers.py
 │   ├── transform_dv_data.py
 │   ├── map_dv_to_rms_locations.py
 │   ├── verify_transformations.py
+│   ├── base_etl.py
 │   ├── check_dv_columns.py
 │   ├── examine_dv_structure.py
 │   ├── quick_analysis.py
 │   └── git_automation.py
-├── 📁 processed_data/ # Cleaned data output
-├── 📁 logs/           # Application logs
-├── 📁 notebooks/      # Jupyter notebooks
-├── 📁 src/config/     # Configuration files
-├── 📁 docs/archive/          # Historical docs & setup guides
-│   ├── QUICKSTART.md
-│   ├── SETUP_GIT.md
-│   ├── START_HERE.md
-│   ├── ANALYSIS_SUMMARY.md
-│   ├── TRANSFORMATION_SUMMARY.md
-│   └── requirements.txt
-├── 📄 README.md              # Full documentation
-└── 📄 .gitignore             # Git ignore rules
+├── 📁 processed_data/         # Cleaned data output
+├── 📁 logs/                   # Application & verification logs
+├── 📁 notebooks/              # Jupyter notebooks
+├── 📁 docs/archive/           # Historical docs & setup guides
+├── 📁 docs/mappings/          # CSV lookup tables for ETL
+├── 📁 docs/source/            # Large reference documents
+├── 📄 docs/data_dictionary.md # Field definitions & samples
+├── 📄 docs/pii_policy.md      # PII handling policy
+├── 📄 README.md               # Full documentation
+├── 📄 Makefile                # Environment, QA, and pipeline commands
+├── 📄 pyproject.toml          # Pinned dependencies & tooling config
+├── 📁 tests/                  # Pytest suite & fixtures
+├── 📁 .github/workflows/      # CI pipeline
+└── 📄 .gitignore              # Git ignore rules
 ```
 
 ### ✅ Core Features
@@ -68,6 +69,12 @@ nj_cad_dv_analysis/
    - Tag and release creation
    - Remote repository setup
 
+5. **Toolchain & Automation**
+   - `pyproject.toml` pins dependencies and linting/type-check configuration
+   - `Makefile` provides `setup`, `qa`, `test`, `fmt`, and pipeline shortcuts
+   - `etl.py` exposes a Click-based CLI for export, profile, transform, map, and verify tasks
+   - GitHub Actions (`.github/workflows/ci.yml`) runs linting, typing, and tests on Windows for every push/PR
+
 ### ✅ Documentation
 
 - **README.md**: Complete project documentation
@@ -79,8 +86,8 @@ nj_cad_dv_analysis/
 
 ### 1️⃣ Install Dependencies
 ```bash
-cd C:\Users\carucci_r\nj_cad_dv_analysis
-pip install -r docs/archive/requirements.txt
+cd C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\dv_doj
+make setup
 ```
 
 ### 2️⃣ Add Your Data
@@ -90,7 +97,7 @@ Copy your raw data files to:
 
 ### 3️⃣ Run AI Analysis
 ```bash
-python etl_scripts/ai_data_analyzer.py
+python etl.py profile --src output --out analysis/ai_responses
 ```
 Results will be in `analysis/ai_responses/`
 
@@ -114,8 +121,8 @@ python etl_scripts/git_automation.py --status
 
 ### Data Analysis
 ```bash
-# Run full analysis
-python etl_scripts/ai_data_analyzer.py
+# Run full analysis via CLI
+python etl.py profile --src output --out analysis/ai_responses
 
 # Check logs
 cat logs/analysis.log
@@ -186,6 +193,9 @@ This project helps you:
 - 📖 **README.md**: Full documentation
 - 🚀 **docs/archive/QUICKSTART.md**: Fast start guide
 - 🔧 **docs/archive/SETUP_GIT.md**: GitHub instructions
+- 🗂️ **docs/data_dictionary.md**: Field definitions and allowed values
+- 🛡️ **docs/pii_policy.md**: PII handling requirements
+- 📑 **docs/mappings/**: CSV lookup tables used by the ETL pipeline
 - 📝 **logs/analysis.log**: Runtime logs
 - 📊 **analysis/ai_responses/**: AI outputs
 

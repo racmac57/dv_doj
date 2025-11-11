@@ -8,8 +8,22 @@ import re
 from pathlib import Path
 import logging
 
+YES_NO_MAP_FILE = Path("docs/mappings/yes_no_bool_map.csv")
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def load_boolean_vocab(path: Path = YES_NO_MAP_FILE):
+    if not path.exists():
+        logger.warning("Boolean mapping file %s not found. Falling back to defaults.", path)
+        truthy = {"X", "O", "Y", "YES", "T", "TRUE", "1"}
+        falsy = {"N", "NO", "F", "FALSE", "0", ""}
+    else:
+        df = pd.read_csv(path)
+        truthy = {str(v).strip().upper() for v in df[df["boolean"].astype(str).str.lower() == "true"]["raw"]}
+        falsy = {str(v).strip().upper() for v in df[df["boolean"].astype(str).str.lower() == "false"]["raw"]}
+    return truthy, falsy
 
 def to_pascal_case(name):
     """Convert a string to PascalCase"""
@@ -83,6 +97,7 @@ def convert_boolean_values(df):
     logger.info("Converting boolean values (X, O -> True)")
     
     cols_to_convert = []
+    truthy_values, falsy_values = load_boolean_vocab()
     
     # First pass: identify columns that should be converted
     for col in df.columns:
@@ -102,10 +117,17 @@ def convert_boolean_values(df):
     # Second pass: convert identified columns
     for col in cols_to_convert:
         logger.info(f"Converting column '{col}' to boolean")
-        df[col] = df[col].apply(
-            lambda x: True if pd.notna(x) and str(x).strip().upper() in ['X', 'O'] 
-            else (False if pd.isna(x) or str(x).strip() in ['', '0'] else x)
-        )
+        def _map_value(val):
+            if pd.isna(val):
+                return False
+            normalized = str(val).strip().upper()
+            if normalized in truthy_values:
+                return True
+            if normalized in falsy_values:
+                return False
+            return val
+
+        df[col] = df[col].apply(_map_value)
     
     return df
 
