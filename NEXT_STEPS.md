@@ -41,7 +41,7 @@ git remote add origin https://github.com/YOUR_USERNAME/nj-cad-dv-analysis.git
 git push -u origin main
 ```
 
-See `SETUP_GIT.md` for detailed instructions.
+See `docs/archive/SETUP_GIT.md` for detailed instructions.
 
 ---
 
@@ -362,8 +362,8 @@ Then move on to the quick Python examples to get your first insights.
 
 **Questions?** Check:
 - `README.md` - Full documentation
-- `ANALYSIS_SUMMARY.md` - What was analyzed
-- `QUICKSTART.md` - Quick reference
+- `docs/archive/ANALYSIS_SUMMARY.md` - What was analyzed
+- `docs/archive/QUICKSTART.md` - Quick reference
 
 Happy analyzing! 🎉
 

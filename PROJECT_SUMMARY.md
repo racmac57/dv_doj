@@ -12,24 +12,36 @@ nj_cad_dv_analysis/
 │   └── csv/           # Place CSV files here
 ├── 📁 analysis/
 │   └── ai_responses/  # AI analysis outputs
-├── 📁 etl_scripts/
-│   └── base_etl.py    # ETL pipeline framework
+├── 📁 etl_scripts/    # All Python utilities and pipelines
+│   ├── ai_data_analyzer.py
+│   ├── base_etl.py
+│   ├── export_excel_sheets_to_csv.py
+│   ├── fix_dv_headers.py
+│   ├── transform_dv_data.py
+│   ├── map_dv_to_rms_locations.py
+│   ├── verify_transformations.py
+│   ├── check_dv_columns.py
+│   ├── examine_dv_structure.py
+│   ├── quick_analysis.py
+│   └── git_automation.py
 ├── 📁 processed_data/ # Cleaned data output
 ├── 📁 logs/           # Application logs
 ├── 📁 notebooks/      # Jupyter notebooks
 ├── 📁 src/config/     # Configuration files
-├── 📄 ai_data_analyzer.py    # Main AI analysis tool
-├── 📄 git_automation.py      # Git/GitHub automation
-├── 📄 requirements.txt       # Python dependencies
+├── 📁 docs/archive/          # Historical docs & setup guides
+│   ├── QUICKSTART.md
+│   ├── SETUP_GIT.md
+│   ├── START_HERE.md
+│   ├── ANALYSIS_SUMMARY.md
+│   ├── TRANSFORMATION_SUMMARY.md
+│   └── requirements.txt
 ├── 📄 README.md              # Full documentation
-├── 📄 QUICKSTART.md          # Quick start guide
-├── 📄 SETUP_GIT.md           # GitHub setup guide
 └── 📄 .gitignore             # Git ignore rules
 ```
 
 ### ✅ Core Features
 
-1. **AI Data Analyzer** (`ai_data_analyzer.py`)
+1. **AI Data Analyzer** (`etl_scripts/ai_data_analyzer.py`)
    - Analyzes all Excel and CSV files
    - Generates comprehensive data quality reports
    - Creates AI prompts for each dataset
@@ -45,12 +57,12 @@ nj_cad_dv_analysis/
    - Automatic data cleaning
 
 3. **DV Data Transformation Scripts**
-   - **`fix_dv_headers.py`**: Fixes column headers, converts booleans
-   - **`transform_dv_data.py`**: Advanced transformations and consolidation
-   - **`map_dv_to_rms_locations.py`**: Maps Case Numbers to locations for GIS
-   - **`verify_transformations.py`**: Validates transformations
+   - **`etl_scripts/fix_dv_headers.py`**: Fixes column headers, converts booleans
+   - **`etl_scripts/transform_dv_data.py`**: Advanced transformations and consolidation
+   - **`etl_scripts/map_dv_to_rms_locations.py`**: Maps Case Numbers to locations for GIS
+   - **`etl_scripts/verify_transformations.py`**: Validates transformations
 
-4. **Git/GitHub Integration** (`git_automation.py`)
+4. **Git/GitHub Integration** (`etl_scripts/git_automation.py`)
    - Automated repository management
    - Commit and push workflows
    - Tag and release creation
@@ -59,8 +71,8 @@ nj_cad_dv_analysis/
 ### ✅ Documentation
 
 - **README.md**: Complete project documentation
-- **QUICKSTART.md**: Get started in 5 minutes
-- **SETUP_GIT.md**: GitHub setup instructions
+- **docs/archive/QUICKSTART.md**: Get started in 5 minutes
+- **docs/archive/SETUP_GIT.md**: GitHub setup instructions
 - **.env.example**: Environment configuration template
 
 ## Next Steps
@@ -68,7 +80,7 @@ nj_cad_dv_analysis/
 ### 1️⃣ Install Dependencies
 ```bash
 cd C:\Users\carucci_r\nj_cad_dv_analysis
-pip install -r requirements.txt
+pip install -r docs/archive/requirements.txt
 ```
 
 ### 2️⃣ Add Your Data
@@ -78,12 +90,12 @@ Copy your raw data files to:
 
 ### 3️⃣ Run AI Analysis
 ```bash
-python ai_data_analyzer.py
+python etl_scripts/ai_data_analyzer.py
 ```
 Results will be in `analysis/ai_responses/`
 
 ### 4️⃣ Set Up GitHub (Optional)
-See `SETUP_GIT.md` for two options:
+See `docs/archive/SETUP_GIT.md` for two options:
 - Manual setup via GitHub website
 - Automated setup with token
 
@@ -95,7 +107,7 @@ See `SETUP_GIT.md` for two options:
 
 Current status:
 ```bash
-python git_automation.py --status
+python etl_scripts/git_automation.py --status
 ```
 
 ## Common Commands
@@ -103,7 +115,7 @@ python git_automation.py --status
 ### Data Analysis
 ```bash
 # Run full analysis
-python ai_data_analyzer.py
+python etl_scripts/ai_data_analyzer.py
 
 # Check logs
 cat logs/analysis.log
@@ -112,19 +124,19 @@ cat logs/analysis.log
 ### Git Operations
 ```bash
 # Check status
-python git_automation.py --status
+python etl_scripts/git_automation.py --status
 
 # Commit and push
-python git_automation.py --commit-push "Your message"
+python etl_scripts/git_automation.py --commit-push "Your message"
 
 # Create release
-python git_automation.py --tag-release v1.0.0 "First release"
+python etl_scripts/git_automation.py --tag-release v1.0.0 "First release"
 ```
 
 ### Python Workflows
 ```python
 # Quick analysis
-from ai_data_analyzer import DataAnalyzer
+from etl_scripts.ai_data_analyzer import DataAnalyzer
 analyzer = DataAnalyzer()
 analyzer.run_analysis()
 
@@ -172,8 +184,8 @@ This project helps you:
 ## Support Resources
 
 - 📖 **README.md**: Full documentation
-- 🚀 **QUICKSTART.md**: Fast start guide
-- 🔧 **SETUP_GIT.md**: GitHub instructions
+- 🚀 **docs/archive/QUICKSTART.md**: Fast start guide
+- 🔧 **docs/archive/SETUP_GIT.md**: GitHub instructions
 - 📝 **logs/analysis.log**: Runtime logs
 - 📊 **analysis/ai_responses/**: AI outputs
 
