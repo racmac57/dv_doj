@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -6,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
-import json
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -221,9 +221,10 @@ def backfill_from_cad(df: pd.DataFrame, cad: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_death_counts(df: pd.DataFrame) -> pd.DataFrame:
-    for col in ["JuvDeaths_M", "AdultDeaths_M", "AdultDeaths_F", "JuvDeaths_F"]:
+    for col in ["JuvDeaths_M", "AdultDeaths_M", "AdultDeaths_F", "JuvDeaths_F", "HomicideDeaths", "Suicide"]:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+            numeric = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+            df[col] = numeric.astype(bool)
     return df
 
 
@@ -261,27 +262,48 @@ def final_cleanup(df: pd.DataFrame) -> pd.DataFrame:
             log.info("Removing %s rows with invalid or missing CaseNumber", int(removed))
         df = df.loc[valid_case_mask].copy()
 
+    if "FullAddress" in df.columns and "CAD_Address" in df.columns:
+        df["FullAddress"] = df["FullAddress"].fillna(df["CAD_Address"])
+    if "FullAddress" in df.columns:
+        hq_mask = df["FullAddress"].astype("string").str.contains(HQ_PATTERN, na=False)
+        df["PoliceHQFlag"] = hq_mask
+        df.loc[hq_mask, "FullAddress"] = pd.NA
+
+    if "Time" in df.columns:
+        df["Time"] = df["Time"].apply(_format_time_output)
+    if "TotalTime" in df.columns:
+        df["TotalTime"] = df["TotalTime"].apply(_format_time_output)
+    if "CAD_Time" in df.columns:
+        df["CAD_Time"] = df["CAD_Time"].apply(_format_time_output)
+
     # Standardise whitespace on string columns
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].astype("string").str.strip()
 
     if "DayOfWeek" in df.columns:
-        df["DayOfWeek"] = df["DayOfWeek"].astype(str).str.strip().str[:3].replace({"nan": pd.NA})
+        df["DayOfWeek"] = df["DayOfWeek"].astype("string").str.strip().str[:3].replace({"nan": pd.NA})
 
-    df["Time"] = df["Time"].apply(_coerce_time)
-    df["TotalTime"] = pd.to_timedelta(df.get("TotalTime"), errors="coerce")
+    if "TotalTime" in df.columns and df["TotalTime"].isna().all():
+        df.drop(columns=["TotalTime"], inplace=True)
+
     df["OffenseDate"] = pd.to_datetime(df.get("OffenseDate"), errors="coerce").dt.date
 
-    return df
+    return df.reset_index(drop=True)
 
 
 def run_backfill(
-    dv_path: Path = DEFAULT_DV,
-    rms_path: Path = DEFAULT_RMS,
-    cad_path: Path = DEFAULT_CAD,
-    out_path: Path = DEFAULT_OUT,
-    log_dir: Path = DEFAULT_LOG_DIR,
+    dv_path: Path | str = DEFAULT_DV,
+    rms_path: Path | str = DEFAULT_RMS,
+    cad_path: Path | str = DEFAULT_CAD,
+    out_path: Path | str = DEFAULT_OUT,
+    log_dir: Path | str = DEFAULT_LOG_DIR,
 ) -> Path:
+    dv_path = Path(dv_path)
+    rms_path = Path(rms_path)
+    cad_path = Path(cad_path)
+    out_path = Path(out_path)
+    log_dir = Path(log_dir)
+
     dv, rms, cad = load_sources(dv_path, rms_path, cad_path)
 
     dv["CaseNumber"] = standardise_case_number(dv["CaseNumber"])
@@ -407,20 +429,20 @@ def validate_data(df: pd.DataFrame, config: ValidationConfig = CONFIG) -> tuple[
 
     # Time parsing
     if "Time" in df.columns:
-        df["Time"] = df["Time"].apply(_coerce_time)
-        invalid_time = df["Time"].isna().sum()
-        metrics["invalid_time"] = int(invalid_time)
+        time_series = df["Time"].astype("string").str.strip()
+        invalid_time = int(time_series.isna().sum() + (time_series == "").sum())
+        metrics["invalid_time"] = invalid_time
         if invalid_time:
-            issue_lines.append(f"Invalid Time format: {invalid_time}")
+            issue_lines.append(f"Missing or invalid Time entries: {invalid_time}")
     else:
         metrics["invalid_time"] = 0
 
     # Death columns
     for col in config.death_columns:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
-            negatives = (df[col] < 0).sum()
-            metrics[f"negative_{col.lower()}"] = int(negatives)
+            col_numeric = pd.to_numeric(df[col], errors="coerce").fillna(0)
+            negatives = int((col_numeric < 0).sum())
+            metrics[f"negative_{col.lower()}"] = negatives
             if negatives:
                 issue_lines.append(f"Negative {col}: {negatives}")
         else:
@@ -466,22 +488,36 @@ def drop_empty_cols(df: pd.DataFrame) -> pd.DataFrame:
 
 
 TIME_PATTERN = re.compile(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$")
-
+HQ_PATTERN = re.compile(r"225\s+State\s+Street", re.IGNORECASE)
 
 def _coerce_time(value: Any) -> Any:
     if pd.isna(value):
-        return None
+        return pd.NaT
     value_str = str(value).strip()
     match = TIME_PATTERN.match(value_str)
     if match:
         h, m, s = match.groups()
         h_i, m_i, s_i = int(h), int(m), int(s or 0)
         if h_i > 23 or m_i > 59 or s_i > 59:
-            return None
+            return pd.NaT
         return pd.to_timedelta(f"{h_i:02d}:{m_i:02d}:{s_i:02d}")
     if "day" in value_str.lower():
-        return None
+        return pd.to_timedelta(value_str, errors="coerce")
     return pd.to_timedelta(value_str, errors="coerce")
+
+
+def _format_time_output(value: Any) -> Any:
+    if pd.isna(value):
+        return pd.NA
+    td = pd.to_timedelta(value, errors="coerce")
+    if pd.isna(td):
+        return pd.NA
+    total_seconds = int(td.total_seconds())
+    if total_seconds < 0:
+        return pd.NA
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
 if __name__ == "__main__":

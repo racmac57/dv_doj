@@ -5,7 +5,8 @@
 A complete Python project for analyzing NJ CAD/RMS and Domestic Violence data with:
 
 ### ✅ Project Structure
-```
+
+```text
 dv_doj/
 ├── 📁 raw_data/
 │   ├── xlsx/                  # Place Excel files here
@@ -93,17 +94,21 @@ dv_doj/
 ## Next Steps
 
 ### 1️⃣ Install Dependencies
+
 ```bash
 cd C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\dv_doj
 make setup
 ```
 
 ### 2️⃣ Add Your Data
+
 Copy your raw data files to:
+
 - Excel files → `raw_data/xlsx/`
 - CSV files → `raw_data/csv/`
 
 ### 3️⃣ Backfill & Validate DV Outputs
+
 ```bash
 python -m etl_scripts.backfill_dv \
   --dv processed_data/_2023_2025_10_31_dv_fixed_transformed_transformed.csv \
@@ -115,13 +120,17 @@ python -m etl_scripts.backfill_dv \
 Validation artifacts are written to `logs/`.
 
 ### 4️⃣ Run AI Analysis
+
 ```bash
 python etl.py profile --src output --out analysis/ai_responses
 ```
+
 Results will be in `analysis/ai_responses/`
 
-### 4️⃣ Set Up GitHub (Optional)
+### 5️⃣ Set Up GitHub (Optional)
+
 See `docs/archive/SETUP_GIT.md` for two options:
+
 - Manual setup via GitHub website
 - Automated setup with token
 
@@ -132,6 +141,7 @@ See `docs/archive/SETUP_GIT.md` for two options:
 ✅ Ready to push to GitHub
 
 Current status:
+
 ```bash
 python etl_scripts/git_automation.py --status
 ```
@@ -139,6 +149,7 @@ python etl_scripts/git_automation.py --status
 ## Common Commands
 
 ### Data Analysis
+
 ```bash
 # Run full analysis via CLI
 python etl.py profile --src output --out analysis/ai_responses
@@ -148,6 +159,7 @@ cat logs/analysis.log
 ```
 
 ### Testing & Benchmarks
+
 ```bash
 # Edge-case regression tests
 pytest tests/test_backfill_functions_edge_cases.py -v
@@ -157,6 +169,7 @@ pytest tests/integration/test_suite.py -v
 ```
 
 ### Git Operations
+
 ```bash
 # Check status
 python etl_scripts/git_automation.py --status
@@ -169,6 +182,7 @@ python etl_scripts/git_automation.py --tag-release v1.0.0 "First release"
 ```
 
 ### Python Workflows
+
 ```python
 # Quick analysis
 from etl_scripts.ai_data_analyzer import DataAnalyzer
@@ -230,20 +244,21 @@ This project helps you:
 ## Security Notes
 
 ⚠️ **Important**:
+
 - `.gitignore` excludes raw data files
 - Sensitive data should NEVER be committed
 - Use `.env` for credentials (not committed)
 - Review what's in repository before pushing
 
-## Ready to Go!
+## Ready to Go
 
 Your project is complete and ready for your data. Follow the QUICKSTART guide to begin analysis!
 
 For questions or issues:
+
 1. Check the logs
 2. Review documentation
 3. See AI analysis outputs
 4. Inspect data quality reports
 
 Happy coding! 🎉
-

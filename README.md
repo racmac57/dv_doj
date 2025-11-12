@@ -189,6 +189,7 @@ The remote repository is hosted at `https://github.com/racmac57/dv_doj.git`. Mak
 - `docs/archive/QUICKSTART.md` – concise walkthrough for new users
 - `docs/archive/SETUP_GIT.md` – step-by-step instructions for configuring GitHub access
 - `docs/archive/TRANSFORMATION_SUMMARY.md` – detailed transformation notes
+- `docs/handoff_next_steps.md` – current testing/cleaning priorities and onboarding message
 - `docs/data_dictionary.md` – canonical field definitions, types, and examples
 - `docs/pii_policy.md` – expectations for handling sensitive information
 - `docs/mappings/` – CSV lookup tables referenced by the ETL pipeline
