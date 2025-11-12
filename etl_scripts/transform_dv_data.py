@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 from zoneinfo import ZoneInfo
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 MAPPINGS_DIR = Path("docs/mappings")
@@ -19,6 +19,8 @@ RACE_ETHNICITY_FILE = MAPPINGS_DIR / "race_ethnicity_map.csv"
 YES_NO_FILE = MAPPINGS_DIR / "yes_no_bool_map.csv"
 RMS_EXPORT_PATH = Path("raw_data/xlsx/output/_2023_2025_10_31_dv_rms.csv")
 CAD_EXPORT_PATH = Path("raw_data/xlsx/output/_2023_2025_10_31_dv_cad.csv")
+CASE_NUMBER_PATTERN = re.compile(r"^\d{2}-\d{6}$")
+BADGE_PATTERN = re.compile(r"(?:#\s*)?(\d{2,4})$")
 EASTERN = ZoneInfo("America/New_York")
 
 
@@ -347,18 +349,40 @@ def backfill_temporal_fields(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def normalize_death_flags(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert death indicator columns to boolean."""
-    death_cols = [col for col in ("JuvDeaths_M", "AdultDeaths_M", "AdultDeaths_F", "JuvDeaths_F") if col in df.columns]
-    for col in death_cols:
-        series = df[col]
-        df[col] = (
-            series.replace({"0": 0, "1": 1})
-            .astype("float")
-            .apply(lambda x: None if pd.isna(x) else bool(int(x)))
-            .astype("boolean")
+    """Convert death indicator columns to pandas Boolean dtype for clarity."""
+    death_cols = [
+        col
+        for col in (
+            "JuvDeaths_M",
+            "AdultDeaths_M",
+            "AdultDeaths_F",
+            "JuvDeaths_F",
+            "HomicideDeaths",
+            "Suicide",
         )
-    if death_cols:
-        logger.info("Normalised death indicator columns to boolean: %s", ", ".join(death_cols))
+        if col in df.columns
+    ]
+    if not death_cols:
+        return df
+
+    truthy, falsy = load_yes_no_mapping()
+    truthy = {value.lower() for value in truthy}
+    falsy = {value.lower() for value in falsy}
+
+    for col in death_cols:
+        series = df[col].astype("string").str.strip()
+        result = pd.Series(pd.NA, index=df.index, dtype="boolean")
+
+        numeric = pd.to_numeric(series, errors="coerce")
+        result.loc[numeric.notna()] = numeric.loc[numeric.notna()] > 0
+
+        lowered = series.str.lower()
+        result.loc[lowered.isin(truthy)] = True
+        result.loc[lowered.isin(falsy)] = False
+
+        df[col] = result
+
+    logger.info("Normalised death indicator columns to boolean: %s", ", ".join(death_cols))
     return df
 
 
@@ -379,6 +403,39 @@ def format_time_columns(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].apply(_format_td).astype("string")
     return df
+
+
+def standardise_reviewed_by(df: pd.DataFrame) -> pd.DataFrame:
+    """Reduce ReviewedBy.1 to badge numbers when possible, leaving other values trimmed."""
+    column = "ReviewedBy.1"
+    if column not in df.columns:
+        return df
+
+    series = df[column].astype("string").str.strip()
+    badge_numbers = series.str.extract(BADGE_PATTERN, expand=False)
+
+    cleaned = pd.Series(pd.NA, index=df.index, dtype="string")
+    cleaned.loc[badge_numbers.notna()] = badge_numbers[badge_numbers.notna()]
+    cleaned.loc[badge_numbers.isna()] = series[badge_numbers.isna()]
+
+    df[column] = cleaned
+    logger.info("Standardised ReviewedBy.1 badge identifiers where present")
+    return df
+
+
+def drop_invalid_case_numbers(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove rows without a valid CaseNumber (format NN-NNNNNN)."""
+    if "CaseNumber" not in df.columns:
+        return df
+
+    case_series = df["CaseNumber"].astype("string").str.strip()
+    valid_mask = case_series.str.match(CASE_NUMBER_PATTERN)
+    removed = (~valid_mask).sum()
+    if removed:
+        logger.info("Dropping %s rows lacking a valid CaseNumber", int(removed))
+    df = df.loc[valid_mask].copy()
+    df.drop_duplicates(subset="CaseNumber", inplace=True)
+    return df.reset_index(drop=True)
 
 
 def _load_tabular(input_path: Path) -> pd.DataFrame:
@@ -423,12 +480,14 @@ def process_dv_file(input_file, output_file=None):
     df = ensure_data_types(df)
     df = normalize_death_flags(df)
     df = format_time_columns(df)
+    df = standardise_reviewed_by(df)
+    df = drop_invalid_case_numbers(df)
     
     logger.info(f"Reduced from {original_cols} to {len(df.columns)} columns")
     
     # Save output
     if output_file is None:
-        output_file = Path('processed_data') / f"{input_path.stem}_transformed.csv"
+        output_file = Path("processed_data") / f"{input_path.stem}_transformed.csv"
     
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
