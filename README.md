@@ -129,7 +129,7 @@ Converted CSV counterparts are stored in `output/`. All sensitive data should re
    - AI prompts for deeper exploration
 3. Use ETL scripts to clean and standardize:
    - `etl_scripts/fix_dv_headers.py` – normalize column names and booleans
-   - `etl_scripts/transform_dv_data.py` – consolidate race, ethnicity, time fields, and more
+   - `etl_scripts/transform_dv_data.py` – consolidate race, ethnicity, time fields, normalise death-count columns to booleans, and trim reviewer badge numbers while dropping rows without valid case numbers
    - `etl_scripts/map_dv_to_rms_locations.py` – join DV cases to RMS locations for GIS
    - `etl_scripts/verify_transformations.py` – confirm transformations succeeded
 4. Load cleaned data into visualization tools, GIS, or downstream analytics.

@@ -67,7 +67,7 @@ dv_doj/
 
 4. **DV Data Transformation Scripts**
    - **`etl_scripts/fix_dv_headers.py`**: Fixes column headers, converts booleans
-   - **`etl_scripts/transform_dv_data.py`**: Advanced transformations and consolidation
+   - **`etl_scripts/transform_dv_data.py`**: Advanced transformations and consolidation, normalises death-count columns to booleans, trims reviewer badge numbers, and filters out rows missing valid case numbers
    - **`etl_scripts/map_dv_to_rms_locations.py`**: Maps Case Numbers to locations for GIS
    - **`etl_scripts/verify_transformations.py`**: Validates transformations
 

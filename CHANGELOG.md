@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Confirmed `python etl.py transform`, `map`, and `verify` run end-to-end against the CSV pipeline after installing the `rich` dependency.
 
+## [1.3.2] - 2025-11-12
+
+### Changed
+- `etl_scripts/transform_dv_data.py` normalises all death-count columns to pandas booleans, trims reviewer badge numbers to their numeric identifiers, and drops rows missing valid case numbers before downstream backfill.
+
+### Documentation
+- Updated `README.md` and `PROJECT_SUMMARY.md` to describe the DV transformation clean-up and reviewer handling.
+
 ### Documentation
 - Refreshed `README.md` and `PROJECT_SUMMARY.md` with the DV backfill workflow, validation artifacts, and updated testing guidance.
 - Refreshed `docs/handoff_next_steps.md` to capture the CSV-first workflow expectations and RMS source location guidance.
